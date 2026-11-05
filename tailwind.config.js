@@ -1,0 +1,1 @@
+export default { content: ["./index.html","./src/**/*.{js,ts,jsx,tsx}"], theme: { extend: { colors: { bg: "#050607", cyan: "#00FFD1", violet: "#8A2BE2" }, fontFamily: { display: ["Space Grotesk","sans-serif"], mono: ["JetBrains Mono","monospace"] } } }, plugins: [] }
