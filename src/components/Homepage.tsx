@@ -34,13 +34,15 @@ export default function Homepage(){
         </div>
       </header>
 
+      {/* VERSION STAMP — proves new file is live. If you don't see this, you are on cached old file. */}
+      <div className="max-w-[1100px] mx-auto px-5 pt-3"><div className="rounded-xl bg-[#00FFD1] text-black font-mono text-[11px] font-bold px-4 py-2 text-center">✅ NEW UPDATE LIVE • FG-FF-02 • ROOM vs RANK • GLOBAL 60s TIMER FIXED • v2.2</div></div>
       {/* HERO — THIS IS PAGE 1: SELL */}
       <section className="max-w-[1100px] mx-auto px-5 pt-10 pb-8">
         <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-8 items-start">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00FFD1]/10 border border-[#00FFD1]/20 font-mono text-[10px] tracking-[0.18em] text-[#00FFD1]">● FREE FIRE + CALL OF DUTY MOBILE • SAME SITE</div>
             <h1 className="mt-5 font-black text-[42px] md:text-[64px] leading-[0.9] tracking-tight">Your Aim.<br/>Engineered.<br/><span className="text-[#00FFD1]">Not Guessed.</span></h1>
-            <p className="mt-4 font-mono text-[13px] leading-relaxed opacity-70 max-w-[520px]">Stop copying YouTuber sensitivity. FG AIM LAB calculates YOUR sensitivity from YOUR phone, YOUR DPI, YOUR fingers, YOUR playstyle, YOUR weapon and YOUR problem. Deterministic engine FG-FF-02 (0-200) + FG-COD-01 (0-300). NEW: Room vs Rank mode. No random. No AI fake.</p>
+            <p className="mt-4 font-mono text-[13px] leading-relaxed opacity-70 max-w-[520px]">Stop copying YouTuber sensitivity. FG AIM LAB calculates YOUR sensitivity from YOUR phone, YOUR DPI, YOUR fingers, YOUR playstyle, YOUR weapon and YOUR problem. Deterministic engine FG-FF-02 (0-200) + FG-COD-01 (0-300). NEW: Room vs Rank + Global 60s Timer. No random. No AI fake.</p>
 
             <div className="mt-6 grid grid-cols-3 gap-3 max-w-[520px]">
               <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3 text-center"><div className="font-black text-[18px]">0-200</div><div className="font-mono text-[9px] opacity-60 mt-1">FREE FIRE<br/>ENGINE</div></div>
@@ -50,8 +52,7 @@ export default function Homepage(){
 
             <div className="mt-6 space-y-2 font-mono text-[12px] opacity-80">
               <div>✓ Built for Infinix, Tecno, Samsung, Xiaomi, Redmi, Poco, Realme, iPhone</div>
-              <div>✓ Room / Rank separate: Custom Room +12 General, Rank stable + Sniper. Training-works-but-Room-fails fixed.
-              ✓ Downloadable PNG card — screenshot-ready, watermarked with your email</div>
+              <div>✓ Downloadable PNG card — screenshot-ready, watermarked with your email</div>
               <div>✓ 1 Payment = 1 Phone + 1 Settings combo. Change phone/settings = New profile</div>
             </div>
           </div>
@@ -100,7 +101,7 @@ export default function Homepage(){
       <section className="max-w-[1100px] mx-auto px-5 py-10 border-t border-white/5">
         <h2 className="font-black text-[28px]">What your ₦500 gives you</h2>
         <div className="mt-5 grid md:grid-cols-2 gap-4">
-          <div className="rounded-[22px] bg-white/[0.03] border border-white/10 p-5"><div className="font-bold">🔥 Free Fire — FG-FF-01</div><div className="mt-2 font-mono text-[11px] opacity-60 leading-relaxed">General, Red Dot, 2x, 4x, Sniper, Free Look. 0-200. Built from DPI, refresh, fingers, playstyle, weapon, fire size, problem.</div></div>
+          <div className="rounded-[22px] bg-white/[0.03] border border-white/10 p-5"><div className="font-bold">🔥 Free Fire — FG-FF-02</div><div className="mt-2 font-mono text-[11px] opacity-60 leading-relaxed">General, Red Dot, 2x, 4x, Sniper, Free Look. 0-200. NEW: Choose Ranked BR or Custom Room / Lone Wolf + Your Drag (Hard/Fast) + Where it fails (Training vs Room). Room sens ≠ Rank sens.</div></div>
           <div className="rounded-[22px] bg-white/[0.03] border border-white/10 p-5"><div className="font-bold">🎯 CODM — FG-COD-01</div><div className="mt-2 font-mono text-[11px] opacity-60 leading-relaxed">Standard, ADS, Tactic, Sniper, Gyro Std, Gyro ADS. 0-300. Plus Gyro On/Off, ADS Tap/Hold.</div></div>
           <div className="rounded-[22px] bg-white/[0.03] border border-white/10 p-5"><div className="font-bold">🖼️ Downloadable PNG Card</div><div className="mt-2 font-mono text-[11px] opacity-60 leading-relaxed">1080×1350 screenshot-ready card. Your values big, your email watermark, profile ID, date. Save to gallery, share to WhatsApp, or screenshot.</div></div>
           <div className="rounded-[22px] bg-white/[0.03] border border-white/10 p-5"><div className="font-bold">🔒 60-Second Anti-Share Lock</div><div className="mt-2 font-mono text-[11px] opacity-60 leading-relaxed">After you generate, you have 60s to download. Then Lab locks and sends you home. Nobody can sit on your paid session and generate unlimited profiles.</div></div>
@@ -116,7 +117,7 @@ export default function Homepage(){
           <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4"><b>Can I screenshot instead of Download?</b><div className="opacity-60 mt-1">Yes. The result card is designed for screenshot. But Download PNG is sharper and has your watermark. Do both in 60s.</div></div>
           <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4"><b>Selar did not bring me back to Lab?</b><div className="opacity-60 mt-1">Go to Selar receipt, copy Reference, then go to /lab and paste it in the backup box. Or contact seller on WhatsApp.</div></div>
         </div>
-        <div className="mt-8 text-center font-mono text-[10px] opacity-40">FG AIM LAB • ENGINEERED BEYOND LIMITS • ₦500 per profile • 1 Payment = 1 Profile</div>
+        <div className="mt-8 text-center font-mono text-[10px] opacity-40">FG AIM LAB • ENGINEERED BEYOND LIMITS • ₦500 per profile • 1 Payment = 1 Profile • v2.2 FG-FF-02 ROOM/RANK</div>
       </section>
     </div>
   )
