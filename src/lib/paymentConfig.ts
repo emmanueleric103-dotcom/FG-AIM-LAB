@@ -57,3 +57,58 @@ export async function verifyRefForProfile(ref: string, fingerprint: string): Pro
 }
 export async function verifyCodeForProfile(code: string, fingerprint: string): Promise<'ok'|'ok_same_profile'|'used_for_other'|'used'|'invalid'|'offline'> { return verifyRefForProfile(code, fingerprint) }
 export function bindRefToFingerprint(ref: string, fingerprint: string) { try { const m: Record<string,string> = JSON.parse(localStorage.getItem("fg_ref_to_fp") || "{}"); m[ref.trim().toUpperCase()] = fingerprint; localStorage.setItem("fg_ref_to_fp", JSON.stringify(m)) } catch {} }
+
+// ===== ADDED FIX: functions Homepage + LabPage import but were missing — caused build failed =====
+export type PendingProfile = { game?: 'ff'|'cod', inputs?: any, fingerprint: string, label: string, email?: string, fullname?: string, startedAt?: number }
+
+export function savePendingProfile(p: PendingProfile){
+  try{
+    localStorage.setItem('fg_pending_profile', JSON.stringify(p))
+    sessionStorage.setItem('fg_pending_profile', JSON.stringify(p))
+    if (p.email) localStorage.setItem(PAYMENT_CONFIG.STORAGE_KEY_EMAIL, p.email)
+  }catch{}
+}
+export function getPendingProfile(): PendingProfile | null {
+  try{
+    const raw = sessionStorage.getItem('fg_pending_profile') || localStorage.getItem('fg_pending_profile')
+    if (!raw) return null
+    return JSON.parse(raw) as PendingProfile
+  }catch{ return null }
+}
+export function clearPendingProfile(){
+  try{ localStorage.removeItem('fg_pending_profile'); sessionStorage.removeItem('fg_pending_profile') }catch{}
+}
+export function parseSelarRedirect(): { email: string, fullname: string } | null {
+  try{
+    const params = new URLSearchParams(window.location.search)
+    const isSuccess = params.get('selar') === 'success' || params.get('payment') === 'success' || params.get('paid') === 'true'
+    if (!isSuccess) return null
+    const email = params.get('email') || params.get('buyer_email') || params.get('customer_email') || localStorage.getItem(PAYMENT_CONFIG.STORAGE_KEY_EMAIL) || ''
+    const fullname = params.get('fullname') || params.get('name') || params.get('buyer_name') || params.get('customer_name') || 'Buyer'
+    return { email, fullname }
+  }catch{ return null }
+}
+export function consumeSelarRedirectParams(){
+  try{
+    const url = new URL(window.location.href)
+    url.searchParams.delete('selar')
+    url.searchParams.delete('payment')
+    url.searchParams.delete('paid')
+    window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+  }catch{}
+}
+export function makeRedirectAutoCode(email: string, fingerprint: string): string {
+  // Deterministic code from email + fingerprint so same profile reloads free via vault
+  const base = (email + '|' + fingerprint).toUpperCase().replace(/[^A-Z0-9]/g,'')
+  let hash = 0
+  for (let i=0;i<base.length;i++){ hash = ((hash<<5)-hash + base.charCodeAt(i)) | 0 }
+  const code = Math.abs(hash).toString(36).toUpperCase().padStart(6,'0').slice(-6)
+  return 'FG-' + code
+}
+export function buildSelarCheckoutUrl(email: string, fullname: string): string {
+  const base = PAYMENT_CONFIG.SELAR_CHECKOUT_URL
+  const sep = base.includes('?') ? '&' : '?'
+  const redirect = 'https://hefgesensitivity.hefge.cloud/lab?selar=success'
+  return base + sep + 'email=' + encodeURIComponent(email) + '&fullname=' + encodeURIComponent(fullname) + '&redirect_url=' + encodeURIComponent(redirect)
+}
+
