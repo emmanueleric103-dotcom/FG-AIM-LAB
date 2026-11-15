@@ -1,6 +1,6 @@
 
 export const PAYMENT_CONFIG = {
-  SELAR_CHECKOUT_URL: "https://selar.com/fgaimlab-pro",
+  SELAR_CHECKOUT_URL: "https://selar.com/46o4125613",
   PLACEHOLDER_URL: "https://selar.com/fgaimlab-pro",
   SELLER_WHATSAPP: "2348100145906",
   PRODUCT_NAME: "FG AIM LAB Pro — 1 Profile Unlock",
