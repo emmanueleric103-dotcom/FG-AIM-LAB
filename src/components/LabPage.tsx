@@ -13,13 +13,15 @@ export default function LabPage(){
   const [paidEmail, setPaidEmail] = useState<string|null>(null)
   const [paidName, setPaidName] = useState('')
   const [active, setActive] = useState<'ff'|'cod'>('ff')
-  const [ffInputs, setFfInputs] = useState<any>({ phoneBrand:'Infinix', phoneModel:'Note 40', ram:'8', refreshRate:'120', fps:'90 FPS', dpi:'420', fingerLayout:'4', playStyle:'Balanced', weapon:'AR', fireButtonSize:'52', problem:'Headshots' })
+  const [ffInputs, setFfInputs] = useState<any>({ phoneBrand:'Infinix', phoneModel:'Note 40', ram:'8', refreshRate:'120', fps:'90 FPS', dpi:'420', fingerLayout:'4', playStyle:'Balanced', weapon:'AR', fireButtonSize:'52', problem:'Headshots', matchMode:'Custom Room / Lone Wolf', dragStyle:'Hard / Fast', failWhere:'Works in Training but fails in Room' })
   const [codInputs, setCodInputs] = useState<any>({ phoneBrand:'Infinix', phoneModel:'Note 40', ram:'8', refreshRate:'120', fps:'Ultra (90 FPS)', dpi:'420', fingerLayout:'4', playStyle:'Balanced', weapon:'AR', adsMode:'Tap', gyro:'Off', fireButtonSize:'52', problem:'Tracking' })
   const [ffResult, setFfResult] = useState<any|null>(null)
   const [codResult, setCodResult] = useState<any|null>(null)
   const [ffExp, setFfExp] = useState<string[]>([])
   const [codExp, setCodExp] = useState<string[]>([])
   const [secondsLeft, setSecondsLeft] = useState(60)
+  const [lockedGame, setLockedGame] = useState<'ff'|'cod'|null>(null)
+  const [generatedAt, setGeneratedAt] = useState<number|null>(null)
   const [locked, setLocked] = useState(false)
   const [lockReason, setLockReason] = useState('')
   const [downloaded, setDownloaded] = useState(false)
@@ -30,11 +32,12 @@ export default function LabPage(){
   const timerRef = useRef<any>(null)
 
   const currentInputs = active==='ff' ? ffInputs : codInputs
-  const currentResult = active==='ff' ? ffResult : codResult
-  const currentExp = active==='ff' ? ffExp : codExp
+  // FIX: Timer is GLOBAL, not per-tab. Once you generate, you are locked to that game. Switching tabs cannot restart timer or generate 2nd profile free.
+  const currentResult = lockedGame ? (lockedGame==='ff' ? ffResult : codResult) : (active==='ff' ? ffResult : codResult)
+  const currentExp = lockedGame ? (lockedGame==='ff' ? ffExp : codExp) : (active==='ff' ? ffExp : codExp)
   const currentFp = getFingerprint(active, currentInputs)
   const currentLabel = getProfileLabel(active, currentInputs)
-  const hasResult = !!currentResult
+  const hasResult = !!(ffResult || codResult)
 
   // 1. Check payment on load: Selar redirect OR sessionStorage paid flag OR pending
   useEffect(()=>{
@@ -59,24 +62,29 @@ export default function LabPage(){
     // No payment -> show locked screen, will redirect to homepage via button
   },[])
 
-  // 2. 60s timer — starts ONLY when result is generated
+  // 2. FIXED 60s timer — GLOBAL, starts once on first generate, NEVER resets on tab switch
+  // Old bug: timer was per-tab, so switching FF -> COD hid timer, switching back restarted it to 60s.
+  // New: timer is based on generatedAt timestamp. It keeps counting even if you switch tabs.
   useEffect(()=>{
-    if (!hasResult || locked) return
-    setSecondsLeft(60)
-    timerRef.current = setInterval(()=>{
-      setSecondsLeft(prev=>{
-        if (prev <= 1) {
-          clearInterval(timerRef.current)
-          handleLock('Time up! 60 seconds finished. Your result is locked.')
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+    if (!generatedAt || locked) return
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - generatedAt) / 1000)
+      const left = 60 - elapsed
+      if (left <= 0) {
+        clearInterval(timerRef.current)
+        setSecondsLeft(0)
+        handleLock('Time up! 60 seconds finished. Your result is locked.')
+      } else {
+        setSecondsLeft(left)
+      }
+    }
+    tick()
+    timerRef.current = setInterval(tick, 500)
     return ()=> clearInterval(timerRef.current)
-  },[hasResult, active])
+  },[generatedAt, locked])
 
   const handleLock = (reason: string) => {
+    if (locked) return
     setLocked(true); setLockReason(reason)
     setFfResult(null); setCodResult(null)
     try{ sessionStorage.removeItem('fg_lab_paid_email'); sessionStorage.removeItem('fg_lab_paid_name'); localStorage.removeItem('fg_lab_paid_email'); clearPendingProfile() }catch{}
@@ -86,6 +94,13 @@ export default function LabPage(){
 
   const gen = () => {
     if (!paidEmail) return
+    // FIX: 1 payment = 1 profile = 1 game. If you already generated FF, you cannot switch to COD and generate 2nd free profile.
+    if (lockedGame && lockedGame !== active) return
+    if (lockedGame && hasResult) return
+    const now = Date.now()
+    setLockedGame(active)
+    setGeneratedAt(now)
+    setSecondsLeft(60)
     if (active==='ff') {
       const { result, explanation } = calculateSensitivity(ffInputs, {})
       setFfResult(result); setFfExp(explanation)
@@ -237,8 +252,9 @@ export default function LabPage(){
 
       <main className="max-w-[1100px] mx-auto px-5 py-6">
         <div className="flex flex-wrap gap-2">
-          <button onClick={()=>{setActive('ff');}} className={`px-5 py-3 rounded-full font-bold text-[12px] ${active==='ff' ? 'bg-[#00FFD1] text-black' : 'bg-white/5 border border-white/10'}`}>🔥 FREE FIRE</button>
-          <button onClick={()=>{setActive('cod');}} className={`px-5 py-3 rounded-full font-bold text-[12px] ${active==='cod' ? 'bg-orange-400 text-black' : 'bg-white/5 border border-white/10'}`}>🎯 CODM</button>
+          <button disabled={!!lockedGame && lockedGame!=='ff'} onClick={()=>{if(!lockedGame) setActive('ff');}} className={`px-5 py-3 rounded-full font-bold text-[12px] disabled:opacity-30 disabled:cursor-not-allowed ${active==='ff' ? 'bg-[#00FFD1] text-black' : 'bg-white/5 border border-white/10'}`}>🔥 FREE FIRE {lockedGame==='ff' ? '• LOCKED' : ''}</button>
+          <button disabled={!!lockedGame && lockedGame!=='cod'} onClick={()=>{if(!lockedGame) setActive('cod');}} className={`px-5 py-3 rounded-full font-bold text-[12px] disabled:opacity-30 disabled:cursor-not-allowed ${active==='cod' ? 'bg-orange-400 text-black' : 'bg-white/5 border border-white/10'}`}>🎯 CODM {lockedGame==='cod' ? '• LOCKED' : ''}</button>
+          {lockedGame && <div className="ml-2 self-center font-mono text-[10px] text-amber-300">🔒 Locked to {lockedGame==='ff'?'FREE FIRE':'CODM'} — Buy again for other game. Timer keeps running, cannot restart.</div>}
           <div className="ml-auto font-mono text-[10px] opacity-60 self-center">Profile ID: {currentFp} • Buyer: {paidName}</div>
         </div>
 
@@ -256,6 +272,14 @@ export default function LabPage(){
               <label className="block"><span className="font-mono text-[10px] opacity-60">PLAYSTYLE</span><select value={currentInputs.playStyle} disabled={hasResult} onChange={e=> active==='ff' ? setFfInputs({...ffInputs, playStyle:e.target.value}) : setCodInputs({...codInputs, playStyle:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50"><option>Balanced</option><option>Aggressive</option>{active==='ff' ? <><option>Precision</option><option>Defensive</option></> : <><option>Stealth</option><option>Sniper</option></>}</select></label>
               <label className="block"><span className="font-mono text-[10px] opacity-60">WEAPON</span><select value={currentInputs.weapon} disabled={hasResult} onChange={e=> active==='ff' ? setFfInputs({...ffInputs, weapon:e.target.value}) : setCodInputs({...codInputs, weapon:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50"><option>AR</option><option>SMG</option><option>Shotgun</option><option>Sniper</option>{active==='ff' ? <option>Balanced</option> : <option>LMG</option>}</select></label>
               <label className="block md:col-span-2"><span className="font-mono text-[10px] opacity-60">PROBLEM</span><div className="mt-1 grid grid-cols-2 md:grid-cols-5 gap-2">{(active==='ff' ? ['Overshooting','Undershooting','Dragging','Unstable','Headshots'] : ['Overshooting','Undershooting','Recoil','Tracking','Wobble']).map(p=><button key={p} disabled={hasResult} onClick={()=> active==='ff' ? setFfInputs({...ffInputs, problem:p}) : setCodInputs({...codInputs, problem:p})} className={`rounded-xl border px-3 py-3 font-mono text-[11px] disabled:opacity-50 ${currentInputs.problem===p ? 'bg-white text-black' : 'bg-black/40 border-white/10'}`}>{p}</button>)}</div></label>
+              {active==='ff' && (
+                <>
+                  <label className="block md:col-span-2"><span className="font-mono text-[10px] opacity-60">🎮 MATCH MODE — ROOM OR RANK? (NEW — Room sens ≠ Rank sens)</span><div className="mt-1 grid grid-cols-1 md:grid-cols-3 gap-2">{(['Ranked BR','Clash Squad Ranked','Custom Room / Lone Wolf'] as const).map(m=><button key={m} disabled={hasResult} onClick={()=>setFfInputs({...ffInputs, matchMode:m})} className={`rounded-xl border px-3 py-3 font-mono text-[11px] text-left disabled:opacity-50 ${ffInputs.matchMode===m ? 'bg-[#00FFD1] text-black font-bold' : 'bg-black/40 border-white/10'}`}>{m}<div className="font-normal opacity-70 text-[10px] mt-1">{m==='Ranked BR' ? 'Stable, long range, tracking' : m==='Clash Squad Ranked' ? 'Faster close, +8 General' : 'Fastest flicks, +12 General'}</div></button>)}</div></label>
+                  <label className="block"><span className="font-mono text-[10px] opacity-60">✋ YOUR DRAG IN ROOM</span><div className="mt-1 grid grid-cols-3 gap-2">{(['Hard / Fast','Normal','Soft / Slow'] as const).map(d=><button key={d} disabled={hasResult} onClick={()=>setFfInputs({...ffInputs, dragStyle:d})} className={`rounded-xl border px-3 py-3 font-mono text-[11px] disabled:opacity-50 ${ffInputs.dragStyle===d ? 'bg-white text-black font-bold' : 'bg-black/40 border-white/10'}`}>{d}</button>)}</div><div className="mt-1 font-mono text-[10px] opacity-50">Most people drag harder/faster in Room → we lower sens to stop overshoot.</div></label>
+                  <label className="block"><span className="font-mono text-[10px] opacity-60">❓ WHERE DOES IT FAIL?</span><select value={ffInputs.failWhere} disabled={hasResult} onChange={e=>setFfInputs({...ffInputs, failWhere:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50"><option>Works in Training but fails in Room</option><option>Works in Room but fails in Rank</option><option>Fails everywhere</option><option>Works everywhere / New</option></select><div className="mt-1 font-mono text-[10px] opacity-50">Training bot stands still. Room enemy moves + panic. Different fix.</div></label>
+                  <div className="md:col-span-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 p-3 font-mono text-[11px] text-cyan-100 leading-relaxed"><b>Why Training works but Room fails?</b> In Training, bot does not move, you have time, no ping, no FPS drop, no pressure. In Room, enemy runs, you panic, you drag harder/faster → same sens overshoots. We fixed it: Room mode + Hard drag = lower General/Red Dot. Test new sens in <b>Custom Room</b>, not Training, for 3 games before judging.</div>
+                </>
+              )}
               {active==='cod' && <label className="block"><span className="font-mono text-[10px] opacity-60">GYRO</span><div className="mt-1 grid grid-cols-2 gap-2">{(['Off','On'] as const).map(g=><button key={g} disabled={hasResult} onClick={()=>setCodInputs({...codInputs, gyro:g})} className={`rounded-xl border py-3 font-mono text-[12px] disabled:opacity-50 ${codInputs.gyro===g ? 'bg-white text-black' : 'bg-black/40 border-white/10'}`}>{g}</button>)}</div></label>}
               {active==='cod' && <label className="block"><span className="font-mono text-[10px] opacity-60">ADS MODE</span><div className="mt-1 grid grid-cols-2 gap-2">{(['Tap','Hold'] as const).map(m=><button key={m} disabled={hasResult} onClick={()=>setCodInputs({...codInputs, adsMode:m})} className={`rounded-xl border py-3 font-mono text-[12px] disabled:opacity-50 ${codInputs.adsMode===m ? 'bg-white text-black' : 'bg-black/40 border-white/10'}`}>{m}</button>)}</div></label>}
             </div>

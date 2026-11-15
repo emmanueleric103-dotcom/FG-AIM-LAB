@@ -40,7 +40,7 @@ export default function Homepage(){
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00FFD1]/10 border border-[#00FFD1]/20 font-mono text-[10px] tracking-[0.18em] text-[#00FFD1]">● FREE FIRE + CALL OF DUTY MOBILE • SAME SITE</div>
             <h1 className="mt-5 font-black text-[42px] md:text-[64px] leading-[0.9] tracking-tight">Your Aim.<br/>Engineered.<br/><span className="text-[#00FFD1]">Not Guessed.</span></h1>
-            <p className="mt-4 font-mono text-[13px] leading-relaxed opacity-70 max-w-[520px]">Stop copying YouTuber sensitivity. FG AIM LAB calculates YOUR sensitivity from YOUR phone, YOUR DPI, YOUR fingers, YOUR playstyle, YOUR weapon and YOUR problem. Deterministic engine FG-FF-01 (0-200) + FG-COD-01 (0-300). No random. No AI fake.</p>
+            <p className="mt-4 font-mono text-[13px] leading-relaxed opacity-70 max-w-[520px]">Stop copying YouTuber sensitivity. FG AIM LAB calculates YOUR sensitivity from YOUR phone, YOUR DPI, YOUR fingers, YOUR playstyle, YOUR weapon and YOUR problem. Deterministic engine FG-FF-02 (0-200) + FG-COD-01 (0-300). NEW: Room vs Rank mode. No random. No AI fake.</p>
 
             <div className="mt-6 grid grid-cols-3 gap-3 max-w-[520px]">
               <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3 text-center"><div className="font-black text-[18px]">0-200</div><div className="font-mono text-[9px] opacity-60 mt-1">FREE FIRE<br/>ENGINE</div></div>
@@ -50,7 +50,8 @@ export default function Homepage(){
 
             <div className="mt-6 space-y-2 font-mono text-[12px] opacity-80">
               <div>✓ Built for Infinix, Tecno, Samsung, Xiaomi, Redmi, Poco, Realme, iPhone</div>
-              <div>✓ Downloadable PNG card — screenshot-ready, watermarked with your email</div>
+              <div>✓ Room / Rank separate: Custom Room +12 General, Rank stable + Sniper. Training-works-but-Room-fails fixed.
+              ✓ Downloadable PNG card — screenshot-ready, watermarked with your email</div>
               <div>✓ 1 Payment = 1 Phone + 1 Settings combo. Change phone/settings = New profile</div>
             </div>
           </div>

@@ -1,69 +1,43 @@
-# FG AIM LAB — NEW CYCLE: HOMEPAGE → SELAR → LAB → DOWNLOAD → LOCK → HOMEPAGE
+# FG AIM LAB — FIX: Timer + Room vs Rank + Training vs Room
 
-## THE NEW FLOW (what you asked for)
-1. HOMEPAGE ( / ) — Buyer sees sales page, enters email + name, taps BUY
-2. SELAR — Buyer pays ₦500 on Selar (checkout prefilled with email/name)
-3. LAB ( /lab ) — Selar redirects buyer to Lab automatically: /lab?selar=success&email=...&fullname=...
-4. GENERATE — Buyer sets phone + DPI + fingers + weapon + problem, taps GENERATE
-5. DOWNLOAD / SCREENSHOT — Buyer has 60 SECONDS to download PNG card or screenshot. Countdown bar at top.
-6. LOCK → HOMEPAGE — After 60s, Lab locks, clears result, sends buyer back to Homepage in 3s. Cycle starts again. Buy again for new profile.
+## WHAT WAS WRONG (you reported)
+1. Timer only for Free Fire. Switch to COD → timer disappears. Switch back to FF → timer restarts to 60s.
+   FIX: Timer is now GLOBAL, based on generatedAt timestamp. It never resets on tab switch. After you generate FF, COD tab is LOCKED (disabled). You cannot generate 2nd profile free. 1 payment = 1 game + 1 profile.
 
-## MY IMPROVEMENTS I ADDED (you asked for ideas)
-- Watermark: Downloaded PNG has buyer's email + profile ID + date — stops sharing. If someone shares it, you know who.
-- Inputs LOCK after generate: Buyer cannot change settings to generate unlimited profiles on 1 payment. 1 payment = 1 profile.
-- Download PNG is 1080x1350 — phone wallpaper size, screenshot-ready, clean, no website chrome.
-- Copy Values button: One tap copies "General: 120 | Red Dot: 115 ..." to paste in WhatsApp / notes.
-- Download TXT backup: If PNG fails, TXT still works.
-- Countdown bar + big timer: Buyer never misses download.
-- Backup Reference: If Selar does NOT redirect, buyer can paste Reference on Lab locked screen to unlock Lab.
-- Session is in sessionStorage, not localStorage — refresh without payment = locked. No cheating by refreshing.
-- Homepage is separate from Lab — cleaner, faster, feels like real product (Jumia / betting style). Lab is private, Homepage is public.
+2. Free Fire: Room sens ≠ Rank sens. People drag harder/faster in Room than Rank.
+   FIX: New selector MATCH MODE:
+   - Ranked BR: stable, +5 4x, +5 Sniper, for long range tracking
+   - Clash Squad Ranked: +8 General, +7 Red Dot, faster close fights
+   - Custom Room / Lone Wolf: +12 General, +10 Red Dot, +6 Free Look, -8 4x, -10 Sniper — close, fast flicks, no long range
 
-## WHAT TO CHANGE IN SELAR (IMPORTANT — DO THIS)
-Selar → Products → FG AIM LAB Pro → Edit
-- Tick: Automatically redirect the buyer to an external URL after a purchase
-- Redirect URL → Paste EXACTLY:
-  https://hefgesensitivity.hefge.cloud/lab?selar=success
-- Save
+3. Training works (standing bot) but Room fails.
+   FIX: New selectors:
+   - YOUR DRAG IN ROOM: Hard/Fast (-12 General, -10 Red Dot to stop overshoot) / Normal / Soft/Slow (+10 General)
+   - WHERE DOES IT FAIL?: Works in Training but fails in Room (-8 General, -6 Red Dot) / Works in Room but fails in Rank / Fails everywhere / New
+   WHY: Training bot stands still, you have time, no ping, no FPS drop, no pressure. Room enemy moves, you panic, you drag harder → same sens overshoots. So Room fix is LOWER sens, not higher.
 
-Old redirect was https://hefgesensitivity.hefge.cloud/?selar=success — CHANGE IT TO /lab version, or buyer will land on Homepage, not Lab.
+4. Old engine used 0-100 scale. Free Fire OB44 raised cap to 0-200. Old engine gave General 95, Red Dot 92 — too low for new scale.
+   FIX: New engine FG-FF-02, BASE General 185, Red Dot 180, 2x 160, 4x 145, Sniper 90, Free Look 130. This matches OB55 guides: General 180-195, Red Dot 175-190.
 
-## WHAT TO CHANGE IN CODE
-src/lib/paymentConfig.ts:
-- SELAR_CHECKOUT_URL = your REAL Selar link (NOT https://selar.com/fgaimlab-pro)
-- SELLER_WHATSAPP = your real number, e.g. 2348100000000
-- SELAR_REDIRECT_URL is already https://hefgesensitivity.hefge.cloud/lab?selar=success
+## HOW TO TEST NEW FIX
+1. Homepage → Buy → Selar → Lab
+2. FF → MATCH MODE: Custom Room / Lone Wolf, DRAG: Hard/Fast, FAIL: Works in Training but fails in Room → GENERATE
+3. Check timer: 0:59 → Switch to COD tab → Should be DISABLED, timer still at top, does NOT restart
+4. Switch back — timer did NOT restart, it kept counting down
+5. Download PNG — PNG shows Mode in profile label
+6. Wait 60s → Lock → Homepage
 
-## DEPLOY (Termux)
-cd /sdcard/Download
-unzip -o FG-HOMEPAGE-SELAR-LAB-CYCLE.zip
-rm -rf ~/fg-aim-lab
-mv fg-homepage-cycle ~/fg-aim-lab
+## HOW TO TEST IN GAME (IMPORTANT)
+- Do NOT judge new sens in Training only. Training is for warm-up.
+- Test in Custom Room, 3 games, same phone, same DPI.
+- If you still overshoot in Room → Go to Lab, choose FAIL: Works in Training but fails in Room, DRAG: Hard/Fast, PROBLEM: Overshooting → Generate again (new payment) — it will be even lower.
+- If you undershoot → PROBLEM: Undershooting.
+
+## DEPLOY
+Same as before:
 cd ~/fg-aim-lab
-nano src/lib/paymentConfig.ts  # set real Selar link + WhatsApp
-npm install
-npm run build
+# IMPORTANT: Do NOT rm -rf whole folder (you lose .git). Do:
+# cp -r new files over old, or if you already deleted .git, re-init + force push
 git add .
-git commit -m "feat: homepage selar lab 60s lock cycle"
+git commit -m "fix: global timer, room vs rank, 0-200 engine"
 git push -f -u origin main
-Netlify will auto-deploy. Wait for Deploy success.
-
-## TEST THE FULL CYCLE
-1. Open https://hefgesensitivity.hefge.cloud/ → You see Homepage (sell page)
-2. Enter email + name → BUY → Pay ₦500 on Selar with SAME email
-3. Selar shows "You're about to be redirected..." → You land on /lab?selar=success&email=...
-4. Lab shows "Paid: your@email" → Set phone/DPI/fingers → GENERATE
-5. You see result + countdown 0:59 → Tap DOWNLOAD PNG CARD → Check gallery, PNG saved
-6. Also try screenshot: Power + Volume Down
-7. Wait 60s → Lab locks → "Session Ended" → Auto back to Homepage in 3s
-8. Buy again → New profile
-
-## IF YOU WANT TO CHANGE 60s
-LabPage.tsx → search for 60 → change setSecondsLeft(60) and formatTime. Recommended: Keep 60s. Longer = more sharing. Shorter = buyers panic. 60s is sweet spot.
-
-## OTHER IDEAS YOU CAN ADD LATER (not in this zip)
-- WhatsApp Share button: Share PNG directly to WhatsApp Status
-- "Buy 3 Profiles, Get 1 Free" bundle on Homepage
-- Before/After video: Show someone using sensitivity, headshots
-- Countdown on Homepage: "Price goes to ₦1000 soon" — urgency
-- Testimonials: Screenshots of buyers' headshots / wins
