@@ -2,9 +2,9 @@
 export const PAYMENT_CONFIG = {
   SELAR_CHECKOUT_URL: "https://selar.com/fgaimlab-pro",
   PLACEHOLDER_URL: "https://selar.com/fgaimlab-pro",
-  SELLER_WHATSAPP: "2340000000000",
+  SELLER_WHATSAPP: "2348100145906",
   PRODUCT_NAME: "FG AIM LAB Pro — 1 Profile Unlock",
-  PRICE_NAIRA: 500, PRICE_DISPLAY: "₦500", CURRENCY: "NGN",
+  PRICE_NAIRA: 620, PRICE_DISPLAY: "₦620", CURRENCY: "NGN",
   WHAT_YOU_GET: ["1 Reference = 1 Profile", "Same Reference for same profile = FREE", "New phone/settings = New ₦500"],
   STORAGE_KEY_UNLOCKED: "fg_payment_unlocked", STORAGE_KEY_REF: "fg_payment_ref", STORAGE_KEY_EMAIL: "fg_payment_email", STORAGE_KEY_DATE: "fg_payment_date", STORAGE_KEY_USED_CODES: "fg_used_codes", STORAGE_KEY_MY_CODE: "fg_my_code", STORAGE_KEY_PENDING: "fg_pending_requests",
 }
