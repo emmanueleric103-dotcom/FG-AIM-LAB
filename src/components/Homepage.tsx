@@ -30,7 +30,7 @@ export default function Homepage(){
             <div className="w-9 h-9 rounded-xl bg-[#00FFD1] text-black font-black flex items-center justify-center text-[16px]">FG</div>
             <div><div className="font-black tracking-widest text-[14px] leading-none">FG AIM LAB</div><div className="font-mono text-[9px] tracking-[0.25em] opacity-50 mt-0.5">ENGINEERED BEYOND LIMITS</div></div>
           </div>
-          <div className="font-mono text-[11px] px-3 py-1.5 rounded-full bg-white/5 border border-white/10">₦500 • 1 Profile</div>
+          <div className="font-mono text-[11px] px-3 py-1.5 rounded-full bg-white/5 border border-white/10">₦620 • 1 Profile</div>
         </div>
       </header>
 
@@ -60,7 +60,7 @@ export default function Homepage(){
           {/* BUY CARD — THIS DIRECTS TO SELAR */}
           <div className="rounded-[28px] bg-[#0A0D0F] border border-white/10 p-6 sticky top-[80px]">
             <div className="font-mono text-[10px] tracking-[0.2em] opacity-50">STEP 1 — BUY YOUR PROFILE</div>
-            <div className="mt-3 flex items-baseline gap-2"><span className="font-black text-[44px]">₦500</span><span className="font-mono text-[11px] opacity-60">NGN • 1 Profile • Not unlimited</span></div>
+            <div className="mt-3 flex items-baseline gap-2"><span className="font-black text-[44px]">₦620</span><span className="font-mono text-[11px] opacity-60">NGN • 1 Profile • Not unlimited</span></div>
             <div className="mt-1 font-mono text-[11px] opacity-60">You pay on Selar. Selar brings you back to the Lab automatically.</div>
 
             <div className="mt-4 flex gap-2">
@@ -73,7 +73,7 @@ export default function Homepage(){
               <div><div className="font-mono text-[10px] tracking-[0.18em] opacity-60 mb-1.5">YOUR FULL NAME</div><input value={name} onChange={e=>setName(e.target.value)} placeholder="John Doe" className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3.5 font-mono text-[13px]" /></div>
             </div>
 
-            <button onClick={handleBuy} disabled={buying} className="mt-4 w-full py-4 rounded-full bg-[#FF6B00] hover:bg-[#FF8A2A] disabled:opacity-50 text-white font-bold text-[13px] tracking-[0.12em]">{buying ? 'OPENING SELAR...' : 'BUY ON SELAR — ₦500 → GO TO LAB'}</button>
+            <button onClick={handleBuy} disabled={buying} className="mt-4 w-full py-4 rounded-full bg-[#FF6B00] hover:bg-[#FF8A2A] disabled:opacity-50 text-white font-bold text-[13px] tracking-[0.12em]">{buying ? 'OPENING SELAR...' : 'BUY ON SELAR — ₦620 → GO TO LAB'}</button>
             <div className="mt-2 text-center font-mono text-[10px] opacity-50 leading-relaxed">You leave this page to pay. After payment, Selar brings you back to the Lab automatically. Use SAME email on Selar.</div>
             {err && <div className="mt-3 rounded-xl bg-red-500/10 border border-red-500/20 p-3 font-mono text-[11px] text-red-300">{err}</div>}
 
@@ -87,7 +87,7 @@ export default function Homepage(){
         <div className="font-mono text-[11px] tracking-[0.22em] text-[#00FFD1]">THE CYCLE — 60 SECONDS TO DOWNLOAD, THEN LOCK</div>
         <div className="mt-6 grid md:grid-cols-4 gap-4">
           {[
-            {n:'01', t:'BUY HERE', d:'Enter email + name, tap BUY. Go to Selar, pay ₦500.'},
+            {n:'01', t:'BUY HERE', d:'Enter email + name, tap BUY. Go to Selar, pay ₦620.'},
             {n:'02', t:'SELAR → LAB', d:'Selar redirects you to /lab with your email. No manual approve.'},
             {n:'03', t:'GENERATE + DOWNLOAD', d:'Enter phone + DPI + fingers + weapon. Generate. Download PNG or Screenshot. 60s countdown.'},
             {n:'04', t:'AUTO-LOCK → HOME', d:'After 60s, Lab locks, clears your result, sends you back here. Want another profile? Buy again.'},
@@ -99,7 +99,7 @@ export default function Homepage(){
 
       {/* WHAT YOU GET */}
       <section className="max-w-[1100px] mx-auto px-5 py-10 border-t border-white/5">
-        <h2 className="font-black text-[28px]">What your ₦500 gives you</h2>
+        <h2 className="font-black text-[28px]">What your ₦620 gives you</h2>
         <div className="mt-5 grid md:grid-cols-2 gap-4">
           <div className="rounded-[22px] bg-white/[0.03] border border-white/10 p-5"><div className="font-bold">🔥 Free Fire — FG-FF-02</div><div className="mt-2 font-mono text-[11px] opacity-60 leading-relaxed">General, Red Dot, 2x, 4x, Sniper, Free Look. 0-200. NEW: Choose Ranked BR or Custom Room / Lone Wolf + Your Drag (Hard/Fast) + Where it fails (Training vs Room). Room sens ≠ Rank sens.</div></div>
           <div className="rounded-[22px] bg-white/[0.03] border border-white/10 p-5"><div className="font-bold">🎯 CODM — FG-COD-01</div><div className="mt-2 font-mono text-[11px] opacity-60 leading-relaxed">Standard, ADS, Tactic, Sniper, Gyro Std, Gyro ADS. 0-300. Plus Gyro On/Off, ADS Tap/Hold.</div></div>
@@ -112,12 +112,12 @@ export default function Homepage(){
       <section className="max-w-[1100px] mx-auto px-5 py-10 border-t border-white/5">
         <h2 className="font-black text-[28px]">Questions</h2>
         <div className="mt-5 space-y-3 font-mono text-[12px] leading-relaxed">
-          <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4"><b>What is 1 Profile?</b><div className="opacity-60 mt-1">1 Game + 1 Phone (Brand/Model/RAM) + DPI + Refresh + Fingers + Playstyle + Weapon + Problem. Change any of those = New profile = New ₦500.</div></div>
+          <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4"><b>What is 1 Profile?</b><div className="opacity-60 mt-1">1 Game + 1 Phone (Brand/Model/RAM) + DPI + Refresh + Fingers + Playstyle + Weapon + Problem. Change any of those = New profile = New ₦620.</div></div>
           <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4"><b>What if I don't download in 60s?</b><div className="opacity-60 mt-1">Lab locks and you go back home. You must buy again. That's why we show a big countdown + Download button at the top. Download first, then screenshot.</div></div>
           <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4"><b>Can I screenshot instead of Download?</b><div className="opacity-60 mt-1">Yes. The result card is designed for screenshot. But Download PNG is sharper and has your watermark. Do both in 60s.</div></div>
           <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4"><b>Selar did not bring me back to Lab?</b><div className="opacity-60 mt-1">Go to Selar receipt, copy Reference, then go to /lab and paste it in the backup box. Or contact seller on WhatsApp.</div></div>
         </div>
-        <div className="mt-8 text-center font-mono text-[10px] opacity-40">FG AIM LAB • ENGINEERED BEYOND LIMITS • ₦500 per profile • 1 Payment = 1 Profile • v2.2 FG-FF-02 ROOM/RANK</div>
+        <div className="mt-8 text-center font-mono text-[10px] opacity-40">FG AIM LAB • ENGINEERED BEYOND LIMITS • ₦620 per profile • 1 Payment = 1 Profile • v2.2 FG-FF-02 ROOM/RANK</div>
       </section>
     </div>
   )

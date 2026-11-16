@@ -212,9 +212,9 @@ export default function LabPage() {
       <div className="min-h-screen bg-[#050607] text-white p-6 flex flex-col items-center justify-center text-center">
         <div className="text-[11px] font-mono text-cyan-300">BUILD REDESIGN-1</div>
         <h1 className="text-3xl font-bold mt-2">FG AIM LAB</h1>
-        <p className="text-gray-400 mt-2">This lab is locked. Pay ₦500 for 1 profile, 1 game.</p>
+        <p className="text-gray-400 mt-2">This lab is locked. Pay ₦620 for 1 profile, 1 game.</p>
         <p className="text-sm text-gray-500 mt-1">One payment = one profile. Changing phone or any setting = new profile.</p>
-        <a href="https://selar.com/46o4125613" className="mt-6 bg-[#00FFD1] text-black font-bold px-6 py-3 rounded-xl">Pay ₦500 on Selar</a>
+        <a href="https://selar.com/46o4125613" className="mt-6 bg-[#00FFD1] text-black font-bold px-6 py-3 rounded-xl">Pay ₦620 on Selar</a>
         <a href="/" className="mt-3 text-cyan-300 underline">Back to Homepage</a>
       </div>
     )
@@ -257,7 +257,7 @@ export default function LabPage() {
           )}
         </div>
 
-        <button onClick={handleGenerate} disabled={isLockedForActive} className={`w-full mt-4 py-4 rounded-xl font-bold text-lg ${isLockedForActive ? 'bg-gray-600 text-gray-300' : 'bg-[#00FFD1] text-black'}`}>{isLockedForActive ? 'LOCKED - Buy New Profile' : 'GENERATE SENSITIVITY - ₦500 Paid'}</button>
+        <button onClick={handleGenerate} disabled={isLockedForActive} className={`w-full mt-4 py-4 rounded-xl font-bold text-lg ${isLockedForActive ? 'bg-gray-600 text-gray-300' : 'bg-[#00FFD1] text-black'}`}>{isLockedForActive ? 'LOCKED - Buy New Profile' : 'GENERATE SENSITIVITY - ₦620 Paid'}</button>
 
         {currentResult && (
           <div className="mt-4 bg-white/5 p-4 rounded-2xl">

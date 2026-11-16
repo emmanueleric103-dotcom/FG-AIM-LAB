@@ -47,7 +47,7 @@ export default function SellerPage() {
             <div>HOW TO USE:</div>
             <div>1. Buyer pays on Selar, enters Ref on Claim Page → You see it in Pending.</div>
             <div>2. Open Selar Dashboard → Transactions → Search that Ref.</div>
-            <div>3. If you see ₦500 PAID → Tap APPROVE here.</div>
+            <div>3. If you see ₦620 PAID → Tap APPROVE here.</div>
             <div>4. Buyer tries Claim Page again → Gets code. Changing 1 letter = Ref NOT approved = NO code.</div>
             <div>5. If Ref NOT in Selar → Do NOT approve. Buyer stays blocked.</div>
           </div>

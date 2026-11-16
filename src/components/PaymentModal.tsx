@@ -64,7 +64,7 @@ export default function PaymentModal({ open, onClose, onUnlocked, game, currentI
   }
 
   const handleWhatsApp = () => {
-    const msg = `Hello FG AIM LAB, I paid ₦500 but my Reference says Invalid. My Selar Ref: ${ref.trim()}. My Profile: ${label}. Profile ID: ${fingerprint}. Please check Selar Sales.`
+    const msg = `Hello FG AIM LAB, I paid ₦620 but my Reference says Invalid. My Selar Ref: ${ref.trim()}. My Profile: ${label}. Profile ID: ${fingerprint}. Please check Selar Sales.`
     if (PAYMENT_CONFIG.SELLER_WHATSAPP && PAYMENT_CONFIG.SELLER_WHATSAPP !== "2340000000000") window.open(`https://wa.me/${PAYMENT_CONFIG.SELLER_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank')
     else setError('Seller WhatsApp not set yet.')
   }
@@ -79,16 +79,16 @@ export default function PaymentModal({ open, onClose, onUnlocked, game, currentI
             <div>
               <div className="font-mono text-[10px] tracking-[0.2em] opacity-50">FG AIM LAB • {gameName}</div>
               <div className="mt-1 font-display font-bold text-[22px] leading-tight">Unlock This Profile</div>
-              <div className="mt-1 font-mono text-[11px] opacity-60">1 Reference = 1 Profile • ₦500</div>
+              <div className="mt-1 font-mono text-[11px] opacity-60">1 Reference = 1 Profile • ₦620</div>
             </div>
             <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><X className="w-4 h-4" /></button>
           </div>
           <div className="mt-4 rounded-2xl bg-white/[0.04] border border-white/10 p-4">
             <div className="font-mono text-[10px] opacity-60">PAY FOR THIS PROFILE ONLY</div>
-            <div className="mt-1 flex items-baseline gap-2"><span className="font-display font-bold text-[32px]">₦500</span><span className="font-mono text-[12px] opacity-60">NGN • 1 Profile • Not unlimited</span></div>
+            <div className="mt-1 flex items-baseline gap-2"><span className="font-display font-bold text-[32px]">₦620</span><span className="font-mono text-[12px] opacity-60">NGN • 1 Profile • Not unlimited</span></div>
           </div>
           {isPlaceholder && <div className="mt-4 rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 font-mono text-[11px] text-amber-300 flex gap-2"><AlertTriangle className="w-4 h-4 shrink-0" />Seller: Real Selar link not set yet.</div>}
-          <button onClick={handlePay} disabled={isPlaceholder} className="mt-4 w-full py-4 rounded-full bg-[#FF6B00] hover:bg-[#FF8A2A] disabled:opacity-50 text-white font-bold text-[13px] tracking-[0.12em] flex items-center justify-center gap-2">PAY WITH SELAR — ₦500 <ExternalLink className="w-4 h-4" /></button>
+          <button onClick={handlePay} disabled={isPlaceholder} className="mt-4 w-full py-4 rounded-full bg-[#FF6B00] hover:bg-[#FF8A2A] disabled:opacity-50 text-white font-bold text-[13px] tracking-[0.12em] flex items-center justify-center gap-2">PAY WITH SELAR — ₦620 <ExternalLink className="w-4 h-4" /></button>
           <div className="mt-2 text-center font-mono text-[10px] opacity-50">After paying, Selar gives you a Reference. Copy it and paste below.</div>
           <div className="my-5 flex items-center gap-3"><div className="flex-1 h-px bg-white/10" /><span className="font-mono text-[10px] tracking-[0.2em] opacity-60">ALREADY PAID?</span><div className="flex-1 h-px bg-white/10" /></div>
           <div className="font-mono text-[11px] font-bold flex items-center gap-2"><Receipt className="w-4 h-4 text-cyan" /> YOUR SELAR REFERENCE = YOUR CODE</div>
@@ -113,7 +113,7 @@ export default function PaymentModal({ open, onClose, onUnlocked, game, currentI
           {success && <div className="mt-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 font-mono text-[11px] text-emerald-300 flex gap-2"><Check className="w-4 h-4" />Reference valid! Profile unlocked.</div>}
           <div className="mt-4 rounded-xl bg-white/[0.04] border border-white/10 p-4 font-mono text-[11px] opacity-70 space-y-2">
             <div className="font-bold text-white flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-cyan" /> How it works:</div>
-            <div>1. You pay ₦500 on Selar → Selar gives you a Reference</div>
+            <div>1. You pay ₦620 on Selar → Selar gives you a Reference</div>
             <div>2. You paste that Reference here</div>
             <div>3. Site checks ITS Sales list → If Reference is there → Unlock. If not → Invalid.</div>
             <div>4. Same Reference for same profile = FREE next time (Vault).</div>
