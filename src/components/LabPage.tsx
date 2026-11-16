@@ -113,10 +113,9 @@ export default function LabPage(){
     ctx.fillStyle = '#050607'; ctx.fillRect(0,0,1080,1350)
     // Cyan top bar
     ctx.fillStyle = '#00FFD1'; ctx.fillRect(0,0,1080,8)
-    ctx.fillStyle = '#00FFD1'; ctx.font = 'bold 28px Arial'; ctx.fillText('FG AIM LAB • BUILD 8f0581d-LOCK', 60, 70)
+    ctx.fillStyle = '#00FFD1'; ctx.font = 'bold 28px Arial'; ctx.fillText('FG AIM LAB', 60, 70)
     ctx.fillStyle = '#E6E9ED'; ctx.font = '16px Arial'; ctx.fillText('ENGINEERED BEYOND LIMITS', 60, 100)
-    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 52px Arial'; ctx.fillText(active==='ff' ? '  {(ffResult || codResult) && (<div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500 text-center font-mono text-[12px]">{ffResult ? 'CODM Locked - TOP: This payment was used for Free Fire. Buy a new profile for CODM.' : 'Free Fire Locked - TOP: This payment was used for CODM. Buy a new profile for Free Fire.'}</div>)}
-FREE FIRE' : 'CALL OF DUTY MOBILE', 60, 180)
+    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 52px Arial'; ctx.fillText(active==='ff' ? 'FREE FIRE' : 'CALL OF DUTY MOBILE', 60, 180)
     ctx.fillStyle = '#00FFD1'; ctx.font = 'bold 26px Arial'; ctx.fillText(active==='ff' ? 'FG-FF-01  •  0-200' : 'FG-COD-01  •  0-300', 60, 220)
     // Profile box
     ctx.fillStyle = '#0A0D0F'; ctx.fillRect(60, 250, 960, 150)
@@ -248,7 +247,10 @@ FREE FIRE' : 'CALL OF DUTY MOBILE', 60, 180)
         <div className="mt-6 grid lg:grid-cols-[1.1fr_0.9fr] gap-6">
           {/* INPUTS */}
           <div className="rounded-[28px] bg-white/[0.03] border border-white/10 p-6">
-            <div className="font-mono text-[11px]">  {active==='ff' && (<div className="mb-6"><div className="font-mono text-[11px] tracking-[0.2em] opacity-60 mb-2 text-center">ROOM vs RANK - FREE FIRE</div><div className="grid grid-cols-2 gap-2 p-1 rounded-full bg-black/40 border border-white/20"><button disabled={hasResult} onClick={()=>setFfInputs({...ffInputs, mode:'room'})} className={ffInputs.mode==='room' ? 'px-4 py-3 rounded-full bg-[#00FFD1] text-black font-bold' : 'px-4 py-3 rounded-full text-white/70'}>ROOM - Custom Room<br/><span className="text-[10px] font-normal">Faster +8 General</span></button><button disabled={hasResult} onClick={()=>setFfInputs({...ffInputs, mode:'rank'})} className={ffInputs.mode==='rank' ? 'px-4 py-3 rounded-full bg-white text-black font-bold' : 'px-4 py-3 rounded-full text-white/70'}>RANK - Ranked<br/><span className="text-[10px] font-normal">Balanced Control</span></button></div><p className="font-mono text-[10px] opacity-60 text-center mt-2">{ffInputs.mode==='room' ? 'Room = close-range flicks, higher sensitivity for Custom Room' : 'Rank = stable control for Ranked matches'}</p></div>)}
+            <div className="font-mono text-[11px]">  {/* BUILD 8f0581d-LOCK */}
+<div className="mb-2 text-center text-[11px] font-mono text-cyan-300">BUILD 8f0581d-LOCK</div>
+{(ffResult || codResult) && (<div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500 text-center font-mono text-[12px]">{ffResult ? 'CODM Locked: This payment was used for Free Fire. Buy a new profile for CODM.' : 'Free Fire Locked: This payment was used for CODM. Buy a new profile for Free Fire.'}</div>)}
+{active==='ff' && (<div className="mb-6"><div className="font-mono text-[11px] tracking-[0.2em] opacity-60 mb-2 text-center">ROOM vs RANK - FREE FIRE</div><div className="grid grid-cols-2 gap-2 p-1 rounded-full bg-black/40 border border-white/20"><button disabled={hasResult} onClick={()=>setFfInputs({...ffInputs, mode:'room'})} className={ffInputs.mode==='room' ? 'px-4 py-3 rounded-full bg-[#00FFD1] text-black font-bold' : 'px-4 py-3 rounded-full text-white/70'}>ROOM - Custom Room<br/><span className="text-[10px] font-normal">Faster +8 General</span></button><button disabled={hasResult} onClick={()=>setFfInputs({...ffInputs, mode:'rank'})} className={ffInputs.mode==='rank' ? 'px-4 py-3 rounded-full bg-white text-black font-bold' : 'px-4 py-3 rounded-full text-white/70'}>RANK - Ranked<br/><span className="text-[10px] font-normal">Balanced Control</span></button></div><p className="font-mono text-[10px] opacity-60 text-center mt-2">{ffInputs.mode==='room' ? 'Room = close-range flicks, higher sensitivity for Custom Room' : 'Rank = stable control for Ranked matches'}</p></div>)}
 YOUR PHONE + SETTINGS — {active==='ff' ? 'FREE FIRE' : 'CODM'}</div>
             <div className="mt-4 grid md:grid-cols-2 gap-4">
               <label className="block"><span className="font-mono text-[10px] opacity-60">BRAND</span><select value={currentInputs.phoneBrand} disabled={hasResult} onChange={e=> active==='ff' ? setFfInputs({...ffInputs, phoneBrand:e.target.value}) : setCodInputs({...codInputs, phoneBrand:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50">{brands.map(b=><option key={b}>{b}</option>)}</select></label>
