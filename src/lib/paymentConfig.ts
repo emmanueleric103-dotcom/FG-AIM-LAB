@@ -111,4 +111,3 @@ export function buildSelarCheckoutUrl(email: string, fullname: string): string {
   const redirect = 'https://hefgesensitivity.hefge.cloud/lab?selar=success'
   return base + sep + 'email=' + encodeURIComponent(email) + '&fullname=' + encodeURIComponent(fullname) + '&redirect_url=' + encodeURIComponent(redirect)
 }
-
