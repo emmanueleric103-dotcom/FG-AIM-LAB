@@ -1,305 +1,289 @@
+import { useState, useEffect } from 'react'
 
-import { useState, useEffect, useRef } from 'react'
-import { PAYMENT_CONFIG, parseSelarRedirect, consumeSelarRedirectParams, getPendingProfile, clearPendingProfile, makeRedirectAutoCode } from '../lib/paymentConfig'
-import { calculateSensitivity } from '../lib/sensitivityEngine'
-import { calculateCodSensitivity } from '../lib/codSensitivityEngine'
-import { getFingerprint, getProfileLabel, unlockProfile } from '../lib/profileLock'
+type Game = 'ff' | 'cod'
+type Mode = 'rank' | 'room'
 
-const brands = ['Infinix','Tecno','Samsung','Xiaomi','Redmi','Poco','Realme','Oppo','Vivo','OnePlus','iPhone']
-const rams = ['4','6','8','12','16']
-const refresh = ['60','90','120','144']
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, Math.round(n)))
+}
 
-export default function LabPage(){
-  const [paidEmail, setPaidEmail] = useState<string|null>(null)
-  const [paidName, setPaidName] = useState('')
-  const [active, setActive] = useState<'ff'|'cod'>('ff')
-  const [ffInputs, setFfInputs] = useState<any>({ phoneBrand:'Infinix', phoneModel:'Note 40', ram:'8', refreshRate:'120', fps:'90 FPS', dpi:'420', fingerLayout:'4', playStyle:'Balanced', weapon:'AR', fireButtonSize:'52', problem:'Headshots', mode:'room' })
-  const [codInputs, setCodInputs] = useState<any>({ phoneBrand:'Infinix', phoneModel:'Note 40', ram:'8', refreshRate:'120', fps:'Ultra (90 FPS)', dpi:'420', fingerLayout:'4', playStyle:'Balanced', weapon:'AR', adsMode:'Tap', gyro:'Off', fireButtonSize:'52', problem:'Tracking' })
-  const [ffResult, setFfResult] = useState<any|null>(null)
-  const [codResult, setCodResult] = useState<any|null>(null)
-  const [ffExp, setFfExp] = useState<string[]>([])
-  const [codExp, setCodExp] = useState<string[]>([])
-  const [secondsLeft, setSecondsLeft] = useState(60)
-  const [locked, setLocked] = useState(false)
-  const [lockReason, setLockReason] = useState('')
-  const [downloaded, setDownloaded] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [showRefBackup, setShowRefBackup] = useState(false)
-  const [ref, setRef] = useState('')
-  const [refErr, setRefErr] = useState('')
-  const timerRef = useRef<any>(null)
+function calcFF(dpi: number, fingers: number, playstyle: string, weapon: string, problem: string, mode: Mode) {
+  let general = 95
+  let red = 92
+  let x2 = 88
+  let x4 = 80
+  let sniper = 68
+  let freeLook = 85
+  const notes: string[] = []
+  // DPI - lower DPI needs higher in-game sensitivity
+  const dpiAdj = clamp((500 - dpi) / 12, -10, 14)
+  general += dpiAdj; red += dpiAdj; x2 += dpiAdj
+  notes.push(`DPI ${dpi}: ${dpiAdj >= 0 ? '+' : ''}${dpiAdj} - low DPI needs higher sensitivity, high DPI needs lower.`)
+  // Fingers - more fingers = better control = slightly lower
+  const fingerAdj = fingers === 2 ? 6 : fingers === 3 ? 2 : fingers === 4 ? -4 : -7
+  general += fingerAdj; red += fingerAdj
+  notes.push(`${fingers} fingers: ${fingerAdj >= 0 ? '+' : ''}${fingerAdj} - more fingers = more control, less sensitivity needed.`)
+  // Playstyle
+  const playAdj = playstyle === 'Aggressive' ? 8 : playstyle === 'Rusher' ? 10 : playstyle === 'Sniper' ? -8 : playstyle === 'Defensive' ? -4 : 0
+  general += playAdj; red += playAdj
+  notes.push(`Playstyle ${playstyle}: ${playAdj >= 0 ? '+' : ''}${playAdj}`)
+  // Weapon
+  const wpAdj = weapon === 'SMG' ? 6 : weapon === 'Shotgun' ? 10 : weapon === 'Sniper' ? -10 : weapon === 'AR' ? 2 : 0
+  general += wpAdj; red += wpAdj
+  notes.push(`Weapon ${weapon}: ${wpAdj >= 0 ? '+' : ''}${wpAdj}`)
+  // Problem
+  let probAdj = 0
+  if (problem === 'Recoil goes up') probAdj = -8
+  if (problem === 'Drag is slow') probAdj = 10
+  if (problem === 'Aim is shaky') probAdj = -10
+  if (problem === 'Close range weak') probAdj = 8
+  if (problem === 'Long range weak') probAdj = -8
+  general += probAdj; red += probAdj; x2 += probAdj
+  notes.push(`Problem ${problem}: ${probAdj >= 0 ? '+' : ''}${probAdj} - fixed by shifting base, not guessing.`)
+  // Room vs Rank - room players drag harder / faster
+  const roomAdj = mode === 'room' ? 8 : 0
+  general += roomAdj; red += 6 * (mode === 'room' ? 1 : 0); x2 += 5 * (mode === 'room' ? 1 : 0)
+  notes.push(mode === 'room' ? 'Mode Room: +8 General - room drag is faster than rank, so sensitivity is higher.' : 'Mode Rank: balanced - rank needs control, not speed.')
+  return {
+    General: clamp(general, 0, 200),
+    'Red Dot': clamp(red, 0, 200),
+    '2x Scope': clamp(x2, 0, 200),
+    '4x Scope': clamp(x4, 0, 200),
+    'Sniper Scope': clamp(sniper, 0, 200),
+    'Free Look': clamp(freeLook, 0, 200),
+    notes,
+  }
+}
 
-  const currentInputs = active==='ff' ? ffInputs : codInputs
-  const currentResult = active==='ff' ? ffResult : codResult
-  const currentExp = active==='ff' ? ffExp : codExp
-  const currentFp = getFingerprint(active, currentInputs)
-  const currentLabel = getProfileLabel(active, currentInputs)
-    const hasResult = !!(ffResult || codResult);
+function calcCODM(dpi: number, fingers: number, playstyle: string, weapon: string, problem: string) {
+  let std = 120
+  let ads = 110
+  let gyro = 95
+  const notes: string[] = []
+  const dpiAdj = clamp((500 - dpi) / 10, -15, 18)
+  std += dpiAdj; ads += dpiAdj
+  notes.push(`DPI ${dpi}: ${dpiAdj >= 0 ? '+' : ''}${dpiAdj}`)
+  const fingerAdj = fingers === 2 ? 8 : fingers === 3 ? 3 : fingers === 4 ? -5 : -9
+  std += fingerAdj; ads += fingerAdj
+  notes.push(`${fingers} fingers: ${fingerAdj >= 0 ? '+' : ''}${fingerAdj}`)
+  const playAdj = playstyle === 'Aggressive' ? 10 : playstyle === 'Rusher' ? 12 : playstyle === 'Sniper' ? -10 : 0
+  std += playAdj; ads += playAdj
+  notes.push(`Playstyle ${playstyle}: ${playAdj >= 0 ? '+' : ''}${playAdj}`)
+  const wpAdj = weapon === 'SMG' ? 8 : weapon === 'Shotgun' ? 12 : weapon === 'Sniper' ? -12 : 2
+  std += wpAdj; ads += wpAdj
+  notes.push(`Weapon ${weapon}: ${wpAdj >= 0 ? '+' : ''}${wpAdj}`)
+  let probAdj = 0
+  if (problem === 'Recoil goes up') probAdj = -10
+  if (problem === 'Drag is slow') probAdj = 12
+  if (problem === 'Aim is shaky') probAdj = -12
+  if (problem === 'Close range weak') probAdj = 10
+  if (problem === 'Long range weak') probAdj = -10
+  std += probAdj; ads += probAdj
+  notes.push(`Problem ${problem}: ${probAdj >= 0 ? '+' : ''}${probAdj}`)
+  return {
+    'Standard Sensitivity': clamp(std, 0, 300),
+    'ADS Sensitivity': clamp(ads, 0, 300),
+    'Gyro Sensitivity': clamp(gyro, 0, 300),
+    notes,
+  }
+}
 
-  // 1. Check payment on load: Selar redirect OR sessionStorage paid flag OR pending
-  useEffect(()=>{
-    // Selar redirect: ?selar=success&email=...&fullname=...
-    const redirect = parseSelarRedirect()
-    if (redirect) {
-      setPaidEmail(redirect.email); setPaidName(redirect.fullname)
-      try{ sessionStorage.setItem('fg_lab_paid_email', redirect.email); sessionStorage.setItem('fg_lab_paid_name', redirect.fullname); sessionStorage.setItem('fg_lab_paid_at', String(Date.now())); localStorage.setItem(PAYMENT_CONFIG.STORAGE_KEY_EMAIL, redirect.email) }catch{}
-      consumeSelarRedirectParams()
-      // Restore game from pending if exists
-      const pending = getPendingProfile()
-      if (pending && pending.game) setActive(pending.game)
+export default function LabPage() {
+  const [active, setActive] = useState<Game>('ff')
+  const [dpi, setDpi] = useState(420)
+  const [fingers, setFingers] = useState(3)
+  const [playstyle, setPlaystyle] = useState('Balanced')
+  const [weapon, setWeapon] = useState('AR')
+  const [problem, setProblem] = useState('Recoil goes up')
+  const [mode, setMode] = useState<Mode>('rank')
+  const [ffResult, setFfResult] = useState<any>(null)
+  const [codResult, setCodResult] = useState<any>(null)
+  const [timeLeft, setTimeLeft] = useState(0)
+  const [savedMsg, setSavedMsg] = useState('')
+
+  const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+  const unlocked = params.get('selar') === 'success'
+  const lockedGame: Game | null = ffResult ? 'ff' : codResult ? 'cod' : null
+  const currentResult = active === 'ff' ? ffResult : codResult
+
+  useEffect(() => {
+    if (timeLeft <= 0) return
+    const t = setTimeout(() => {
+      if (timeLeft === 1) {
+        window.location.href = '/'
+      } else {
+        setTimeLeft(timeLeft - 1)
+      }
+    }, 1000)
+    return () => clearTimeout(t)
+  }, [timeLeft])
+
+  function handleGenerate() {
+    if (!unlocked) return
+    if (lockedGame && lockedGame !== active) {
+      alert(lockedGame === 'ff' ? 'CODM Locked: This payment was used for Free Fire. Buy a new profile for CODM.' : 'Free Fire Locked: This payment was used for CODM. Buy a new profile for Free Fire.')
       return
     }
-    // Already paid in this tab (refresh / after redirect)
-    try{
-      const e = sessionStorage.getItem('fg_lab_paid_email')
-      if (e) { setPaidEmail(e); setPaidName(sessionStorage.getItem('fg_lab_paid_name')||'Buyer'); return }
-      const le = localStorage.getItem('fg_lab_paid_email')
-      if (le) { setPaidEmail(le); return }
-    }catch{}
-    // No payment -> show locked screen, will redirect to homepage via button
-  },[])
-
-  // 2. 60s timer — starts ONLY when result is generated
-  useEffect(()=>{
-    if (!hasResult || locked) return
-    setSecondsLeft(60)
-    timerRef.current = setInterval(()=>{
-      setSecondsLeft(prev=>{
-        if (prev <= 1) {
-          clearInterval(timerRef.current)
-          handleLock('Time up! 60 seconds finished. Your result is locked.')
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-    return ()=> clearInterval(timerRef.current)
-  },[hasResult])
-
-  const handleLock = (reason: string) => {
-    setLocked(true); setLockReason(reason)
-    setFfResult(null); setCodResult(null)
-    try{ sessionStorage.removeItem('fg_lab_paid_email'); sessionStorage.removeItem('fg_lab_paid_name'); localStorage.removeItem('fg_lab_paid_email'); clearPendingProfile() }catch{}
-    // After 3s, back to homepage to start cycle again
-    setTimeout(()=>{ window.location.href = '/' }, 3500)
-  }
-
-  const gen = () => {
-  if (ffResult && active==='cod') { alert('This payment was used for Free Fire. Buy a new profile for CODM.'); return; }
-  if (codResult && active==='ff') { alert('This payment was used for CODM. Buy a new profile for Free Fire.'); return; }
-    if (!paidEmail) return
-    if (active==='ff') {
-      const { result, explanation } = calculateSensitivity(ffInputs, {})
-      setFfResult(result); setFfExp(explanation)
+    if (active === 'ff') {
+      const r = calcFF(dpi, fingers, playstyle, weapon, problem, mode)
+      setFfResult(r)
     } else {
-      const { result, explanation } = calculateCodSensitivity(codInputs, {})
-      setCodResult(result); setCodExp(explanation)
+      const r = calcCODM(dpi, fingers, playstyle, weapon, problem)
+      setCodResult(r)
     }
-    // Lock this profile to this payment (1 payment = 1 profile)
-    const autoCode = makeRedirectAutoCode(paidEmail, currentFp)
-    unlockProfile({ fingerprint: currentFp, game: active, label: currentLabel, code: autoCode, ref: autoCode, date: new Date().toISOString(), inputs: currentInputs })
-    setDownloaded(false); setCopied(false)
+    setTimeLeft(60)
+    setSavedMsg('')
   }
 
-  const formatTime = (s:number) => `0:${s < 10 ? '0'+s : s}`
-
-  // ===== DOWNLOADABLE PNG — canvas, 1080x1350, screenshot-ready =====
-  const downloadPNG = () => {
-    if (!currentResult || !paidEmail) return
-    const canvas = document.createElement('canvas')
-    canvas.width = 1080; canvas.height = 1350
-    const ctx = canvas.getContext('2d')!
-    // Background
-    ctx.fillStyle = '#050607'; ctx.fillRect(0,0,1080,1350)
-    // Cyan top bar
-    ctx.fillStyle = '#00FFD1'; ctx.fillRect(0,0,1080,8)
-    ctx.fillStyle = '#00FFD1'; ctx.font = 'bold 28px Arial'; ctx.fillText('FG AIM LAB', 60, 70)
-    ctx.fillStyle = '#E6E9ED'; ctx.font = '16px Arial'; ctx.fillText('ENGINEERED BEYOND LIMITS', 60, 100)
-    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 52px Arial'; ctx.fillText(active==='ff' ? 'FREE FIRE' : 'CALL OF DUTY MOBILE', 60, 180)
-    ctx.fillStyle = '#00FFD1'; ctx.font = 'bold 26px Arial'; ctx.fillText(active==='ff' ? 'FG-FF-01  •  0-200' : 'FG-COD-01  •  0-300', 60, 220)
-    // Profile box
-    ctx.fillStyle = '#0A0D0F'; ctx.fillRect(60, 250, 960, 150)
-    ctx.fillStyle = '#AAAAAA'; ctx.font = '20px Arial'; ctx.fillText('PROFILE', 90, 290)
-    ctx.fillStyle = '#FFFFFF'; ctx.font = '22px Arial'
-    const lines = [currentLabel.slice(0,58), currentLabel.slice(58,116)]
-    ctx.fillText(lines[0], 90, 325)
-    if (lines[1]) ctx.fillText(lines[1], 90, 355)
-    ctx.fillStyle = '#00FFD1'; ctx.font = 'bold 20px Arial'; ctx.fillText(`PROFILE ID: ${currentFp}`, 90, 385)
-    // Results
-    let y = 470
-    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 28px Arial'; ctx.fillText('YOUR SENSITIVITY', 60, y); y += 30
-    Object.entries(currentResult).forEach(([k,v])=>{
-      y += 70
-      ctx.fillStyle = '#111418'; ctx.fillRect(60, y-35, 960, 60)
-      ctx.fillStyle = '#CCCCCC'; ctx.font = '24px Arial'; ctx.fillText(k, 90, y+5)
-      ctx.fillStyle = '#00FFD1'; ctx.font = 'bold 36px Arial'; ctx.textAlign = 'right'; ctx.fillText(String(v), 990, y+8); ctx.textAlign = 'left'
-    })
-    y += 110
-    ctx.fillStyle = '#888888'; ctx.font = '20px Arial'; ctx.fillText('Copy these numbers into your game settings exactly.', 60, y)
-    y += 40
-    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 22px Arial'; ctx.fillText('HOW TO USE: Free Fire / CODM → Settings → Sensitivity →', 60, y)
-    y += 35; ctx.fillText('Set each value above. Restart game if needed.', 60, y)
-    // Footer watermark
-    y = 1240
-    ctx.fillStyle = '#00FFD1'; ctx.fillRect(60, y, 960, 2); y += 35
-    ctx.fillStyle = '#AAAAAA'; ctx.font = '18px Arial'; ctx.fillText(`Buyer: ${paidEmail}`, 60, y)
-    ctx.fillStyle = '#AAAAAA'; ctx.font = '18px Arial'; ctx.fillText(`Date: ${new Date().toLocaleString()}  •  1 Payment = 1 Profile`, 60, y+30)
-    ctx.fillStyle = '#666666'; ctx.font = '16px Arial'; ctx.fillText('FG AIM LAB • Do not share — watermarked to buyer', 60, y+60)
+  function handleDownloadTxt() {
+    if (!currentResult) return
+    const lines = [
+      'FG AIM LAB - ENGINEERED BEYOND LIMITS',
+      `Game: ${active === 'ff' ? 'Free Fire' : 'Call of Duty Mobile'}`,
+      `DPI: ${dpi} | Fingers: ${fingers} | Playstyle: ${playstyle} | Weapon: ${weapon} | Problem: ${problem} | Mode: ${active === 'ff' ? mode : 'N/A'}`,
+      '',
+      '--- SENSITIVITY ---',
+      ...Object.keys(currentResult).filter(k => k !== 'notes').map(k => `${k}: ${currentResult[k]}`),
+      '',
+      '--- WHY THIS SENSITIVITY (VERIFIED ENGINE) ---',
+      ...(currentResult.notes || []),
+      '',
+      '--- HOW TO MASTER THIS SENSITIVITY - READ THIS ---',
+      '1. Apply EXACTLY as shown. Do not change one value alone.',
+      '2. Training Ground 10 mins: 100 kills, practice drag + flick, no rank yet.',
+      '3. Room test: Play 3 rooms. If drag feels slow, add +5 to General only. If shaky, minus -5 only.',
+      '4. Rank test: Play 3 rank matches. Do NOT change sensitivity mid-match.',
+      '5. If still off after 3 rooms + 3 ranks, generate again with correct DPI / Problem. Do not guess.',
+      'Changing phone or any setting = new profile = new payment. Saved profiles in MY PROFILES can be reloaded free.',
+    ]
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
     const a = document.createElement('a')
-    a.download = `FG-AIM-LAB-${active.toUpperCase()}-${currentFp}.png`
-    a.href = canvas.toDataURL('image/png')
+    a.href = URL.createObjectURL(blob)
+    a.download = `FG-AIM-LAB-${active === 'ff' ? 'FF' : 'CODM'}.txt`
     a.click()
-    setDownloaded(true)
   }
 
-  const downloadTXT = () => {
+  function handleDownloadPng() {
     if (!currentResult) return
-    const txt = `FG AIM LAB — ${active==='ff'?'FREE FIRE':'CODM'}\nProfile: ${currentLabel}\nProfile ID: ${currentFp}\nBuyer: ${paidEmail}\nDate: ${new Date().toLocaleString()}\n\nSENSITIVITY:\n` + Object.entries(currentResult).map(([k,v])=>`${k}: ${v}`).join('\n') + `\n\nHow to use: Copy into game Settings → Sensitivity\n1 Payment = 1 Profile • Do not share`
-    const blob = new Blob([txt], {type:'text/plain'})
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href=url; a.download=`FG-AIM-LAB-${active.toUpperCase()}-${currentFp}.txt`; a.click(); URL.revokeObjectURL(url)
-    setDownloaded(true)
+    const canvas = document.createElement('canvas')
+    canvas.width = 720; canvas.height = 1080
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.fillStyle = '#050607'; ctx.fillRect(0, 0, 720, 1080)
+    ctx.fillStyle = '#00FFD1'; ctx.font = 'bold 32px Arial'; ctx.fillText('FG AIM LAB', 40, 70)
+    ctx.fillStyle = '#E6E9ED'; ctx.font = '16px Arial'; ctx.fillText('ENGINEERED BEYOND LIMITS', 40, 100)
+    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 28px Arial'; ctx.fillText(active === 'ff' ? 'FREE FIRE' : 'CALL OF DUTY MOBILE', 40, 150)
+    ctx.fillStyle = '#00FFD1'; ctx.font = '18px Arial'; ctx.fillText(`DPI ${dpi} | ${fingers} Fingers | ${playstyle} | ${weapon} | ${mode}`, 40, 185)
+    let y = 230
+    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 22px Arial'; ctx.fillText('SENSITIVITY', 40, y); y += 35
+    Object.keys(currentResult).filter(k => k !== 'notes').forEach(k => {
+      ctx.font = '20px Arial'; ctx.fillStyle = '#E6E9ED'; ctx.fillText(`${k}:`, 40, y)
+      ctx.fillStyle = '#00FFD1'; ctx.fillText(`${currentResult[k]}`, 320, y)
+      y += 38
+    })
+    y += 20
+    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 20px Arial'; ctx.fillText('HOW TO MASTER:', 40, y); y += 30
+    ctx.fillStyle = '#E6E9ED'; ctx.font = '16px Arial'
+    const guide = ['1. Apply exactly. Do not change one value.', '2. Training 10 mins - 100 kills.', '3. Room x3 - adjust +-5 only if needed.', '4. Rank x3 - do not change mid-match.', '5. Still off? Re-generate with correct DPI.']
+    guide.forEach(g => { ctx.fillText(g, 40, y); y += 28 })
+    const a = document.createElement('a')
+    a.href = canvas.toDataURL('image/png')
+    a.download = `FG-AIM-LAB-${active === 'ff' ? 'FF' : 'CODM'}.png`
+    a.click()
   }
 
-  const copyValues = async () => {
+  function handleCopy() {
     if (!currentResult) return
-    const s = Object.entries(currentResult).map(([k,v])=>`${k}: ${v}`).join(' | ')
-    try{ await navigator.clipboard.writeText(s); setCopied(true); setTimeout(()=>setCopied(false),2000) }catch{}
+    const txt = Object.keys(currentResult).filter(k => k !== 'notes').map(k => `${k}: ${currentResult[k]}`).join('\n')
+    navigator.clipboard.writeText(`FG AIM LAB - ${active === 'ff' ? 'Free Fire' : 'CODM'}\n${txt}`)
+    setSavedMsg('Copied!')
   }
 
-  const handleRefBackup = () => {
-    if (!ref.trim() || ref.trim().length < 10) { setRefErr('Enter your Selar Reference, e.g. SS15YT2P60WUMW0AG'); return }
-    // Backup: if buyer has a Reference, accept it as paid (they paid, Selar just did not redirect)
-    // In this cycle, we trust Reference as backup because buyer is already in Lab and will be watermarked.
-    const emailFromRef = localStorage.getItem(PAYMENT_CONFIG.STORAGE_KEY_EMAIL) || 'buyer@gmail.com'
-    setPaidEmail(emailFromRef); setPaidName('Buyer')
-    try{ sessionStorage.setItem('fg_lab_paid_email', emailFromRef) }catch{}
-    setRefErr(''); setShowRefBackup(false)
+  function handleSave() {
+    if (!currentResult) return
+    const vault = JSON.parse(localStorage.getItem('fg_vault') || '[]')
+    vault.push({ game: active, dpi, fingers, playstyle, weapon, problem, mode, result: currentResult, at: new Date().toISOString() })
+    localStorage.setItem('fg_vault', JSON.stringify(vault))
+    setSavedMsg('Saved to MY PROFILES Vault - reload free!')
   }
 
-  // NOT PAID SCREEN
-  if (!paidEmail && !locked) {
+  if (!unlocked) {
     return (
-      <div className="min-h-screen bg-[#050607] text-[#E6E9ED] flex items-center justify-center px-5">
-        <div className="w-full max-w-[520px] rounded-[28px] bg-[#0A0D0F] border border-white/10 p-6 text-center">
-          <div className="w-16 h-16 mx-auto rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-[28px]">🔒</div>
-          <div className="mt-4 font-black text-[22px]">Lab is Locked</div>
-          <p className="mt-2 font-mono text-[12px] opacity-60 leading-relaxed">You need to pay ₦500 first on the Homepage. After payment, Selar will bring you here automatically.</p>
-          <button onClick={()=>window.location.href='/'} className="mt-6 w-full py-4 rounded-full bg-[#FF6B00] text-white font-bold text-[13px] tracking-[0.12em]">GO TO HOMEPAGE → BUY ₦500</button>
-          <button onClick={()=>setShowRefBackup(true)} className="mt-3 w-full py-3 rounded-full bg-white/5 border border-white/10 font-mono text-[11px]">I PAID BUT SELAR DID NOT BRING ME BACK — USE REFERENCE</button>
-          {showRefBackup && (
-            <div className="mt-4 text-left rounded-2xl bg-white/[0.04] border border-white/10 p-4">
-              <div className="font-mono text-[11px] font-bold">Paste Selar Reference</div>
-              <input value={ref} onChange={e=>setRef(e.target.value.toUpperCase())} placeholder="SS15YT2P60WUMW0AG" className="mt-2 w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 font-mono text-[13px]" />
-              <button onClick={handleRefBackup} className="mt-3 w-full py-3 rounded-full bg-white text-black font-bold text-[12px]">UNLOCK LAB WITH REFERENCE</button>
-              {refErr && <div className="mt-2 font-mono text-[11px] text-red-300">{refErr}</div>}
-            </div>
-          )}
-          <div className="mt-4 font-mono text-[10px] opacity-40">If you just paid, wait 10 seconds and refresh. Selar redirect may be slow.</div>
-        </div>
+      <div className="min-h-screen bg-[#050607] text-white p-6 flex flex-col items-center justify-center text-center">
+        <div className="text-[11px] font-mono text-cyan-300">BUILD REDESIGN-1</div>
+        <h1 className="text-3xl font-bold mt-2">FG AIM LAB</h1>
+        <p className="text-gray-400 mt-2">This lab is locked. Pay ₦500 for 1 profile, 1 game.</p>
+        <p className="text-sm text-gray-500 mt-1">One payment = one profile. Changing phone or any setting = new profile.</p>
+        <a href="https://selar.com/46o4125613" className="mt-6 bg-[#00FFD1] text-black font-bold px-6 py-3 rounded-xl">Pay ₦500 on Selar</a>
+        <a href="/" className="mt-3 text-cyan-300 underline">Back to Homepage</a>
       </div>
     )
   }
 
-  // LOCKED AFTER 60s SCREEN
-  if (locked) {
-    return (
-      <div className="min-h-screen bg-[#050607] text-[#E6E9ED] flex items-center justify-center px-5">
-        <div className="w-full max-w-[520px] rounded-[28px] bg-[#0A0D0F] border border-red-500/20 p-6 text-center">
-          <div className="w-16 h-16 mx-auto rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-[28px]">⏰</div>
-          <div className="mt-4 font-black text-[22px]">Session Ended — Locked</div>
-          <p className="mt-2 font-mono text-[12px] opacity-70 leading-relaxed">{lockReason}<br/>Your result is cleared for security. You are going back to Homepage in 3 seconds...</p>
-          <div className="mt-4 font-mono text-[11px] opacity-60">Want another profile? Buy again — ₦500.</div>
-          <button onClick={()=>window.location.href='/'} className="mt-5 w-full py-4 rounded-full bg-[#FF6B00] text-white font-bold text-[13px]">BACK TO HOMEPAGE NOW →</button>
-          {downloaded && <div className="mt-3 font-mono text-[11px] text-emerald-300">✓ You downloaded before lock — check your gallery.</div>}
-        </div>
-      </div>
-    )
-  }
+  const isLockedForActive = lockedGame !== null && lockedGame !== active
 
   return (
-    <div className="min-h-screen bg-[#050607] text-[#E6E9ED]">
-      {/* LAB HEADER */}
-      <header className="sticky top-0 z-50 bg-[#050607]/90 backdrop-blur border-b border-white/5">
-        <div className="max-w-[1100px] mx-auto px-5 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-[#00FFD1] text-black font-black flex items-center justify-center">FG</div><div><div className="font-black text-[13px] leading-none">FG AIM LAB • LAB</div><div className="font-mono text-[9px] opacity-50">Paid: {paidEmail}</div></div></div>
-          <button onClick={()=>window.location.href='/'} className="font-mono text-[11px] px-3 py-2 rounded-full bg-white/5 border border-white/10">← Homepage</button>
+    <div className="min-h-screen bg-[#050607] text-white p-4 pb-20">
+      <div className="max-w-xl mx-auto">
+        <div className="text-center">
+          <div className="text-[11px] font-mono text-cyan-300">BUILD REDESIGN-1 • VERIFIED ENGINE</div>
+          <h1 className="text-3xl font-bold mt-1">FG AIM LAB</h1>
+          <p className="text-gray-400 text-sm">ENGINEERED BEYOND LIMITS</p>
         </div>
-        {/* 60s COUNTDOWN BAR — only after generate */}
-        {hasResult && (
-          <div className="bg-red-500/10 border-t border-red-500/20">
-            <div className="max-w-[1100px] mx-auto px-5 py-2 flex items-center justify-between gap-3">
-              <div className="font-mono text-[11px] font-bold text-red-300">⏰ DOWNLOAD NOW — LOCKS IN {formatTime(secondsLeft)}</div>
-              <div className="font-mono text-[10px] opacity-60 hidden md:block">{downloaded ? '✓ Downloaded' : 'Not downloaded yet!'}</div>
-            </div>
-            <div className="h-1.5 bg-white/10"><div className="h-full bg-red-500 transition-all duration-1000" style={{width: `${(secondsLeft/60)*100}%`}} /></div>
+
+        {lockedGame && (
+          <div className="mt-4 p-3 rounded-xl bg-red-500/20 border border-red-500 text-center font-mono text-[12px]">
+            {lockedGame === 'ff' ? 'CODM Locked: This payment was used for Free Fire. Buy a new profile for CODM.' : 'Free Fire Locked: This payment was used for CODM. Buy a new profile for Free Fire.'}
           </div>
         )}
-      </header>
 
-      <main className="max-w-[1100px] mx-auto px-5 py-6">
-        <div className="flex flex-wrap gap-2">
-          <button onClick={()=>{setActive('ff');}} className={`px-5 py-3 rounded-full font-bold text-[12px] ${active==='ff' ? 'bg-[#00FFD1] text-black' : 'bg-white/5 border border-white/10'}`}>🔥 FREE FIRE</button>
-          <button onClick={()=>{setActive('cod');}} className={`px-5 py-3 rounded-full font-bold text-[12px] ${active==='cod' ? 'bg-orange-400 text-black' : 'bg-white/5 border border-white/10'}`}>🎯 CODM</button>
-          <div className="ml-auto font-mono text-[10px] opacity-60 self-center">Profile ID: {currentFp} • Buyer: {paidName}</div>
+        {timeLeft > 0 && (
+          <div className="mt-3 p-2 rounded-xl bg-yellow-500/20 border border-yellow-500 text-center text-sm">Lab locks in {timeLeft}s - Download now, then you return to homepage.</div>
+        )}
+
+        <div className="flex gap-2 mt-4">
+          <button onClick={() => { if (lockedGame === 'cod') { alert('Free Fire Locked: This payment was used for CODM.'); return } setActive('ff') }} className={`flex-1 py-3 rounded-xl font-bold ${active === 'ff' ? 'bg-[#00FFD1] text-black' : 'bg-white/10'}`}>FREE FIRE {lockedGame === 'cod' ? '🔒' : ''}</button>
+          <button onClick={() => { if (lockedGame === 'ff') { alert('CODM Locked: This payment was used for Free Fire.'); return } setActive('cod') }} className={`flex-1 py-3 rounded-xl font-bold ${active === 'cod' ? 'bg-[#00FFD1] text-black' : 'bg-white/10'}`}>CODM {lockedGame === 'ff' ? '🔒' : ''}</button>
         </div>
 
-        <div className="mt-6 grid lg:grid-cols-[1.1fr_0.9fr] gap-6">
-          {/* INPUTS */}
-          <div className="rounded-[28px] bg-white/[0.03] border border-white/10 p-6">
-            <div className="font-mono text-[11px]">  {/* BUILD 8f0581d-LOCK */}
-<div className="mb-2 text-center text-[11px] font-mono text-cyan-300">BUILD 8f0581d-LOCK</div>
-{(ffResult || codResult) && (<div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500 text-center font-mono text-[12px]">{ffResult ? 'CODM Locked: This payment was used for Free Fire. Buy a new profile for CODM.' : 'Free Fire Locked: This payment was used for CODM. Buy a new profile for Free Fire.'}</div>)}
-{active==='ff' && (<div className="mb-6"><div className="font-mono text-[11px] tracking-[0.2em] opacity-60 mb-2 text-center">ROOM vs RANK - FREE FIRE</div><div className="grid grid-cols-2 gap-2 p-1 rounded-full bg-black/40 border border-white/20"><button disabled={hasResult} onClick={()=>setFfInputs({...ffInputs, mode:'room'})} className={ffInputs.mode==='room' ? 'px-4 py-3 rounded-full bg-[#00FFD1] text-black font-bold' : 'px-4 py-3 rounded-full text-white/70'}>ROOM - Custom Room<br/><span className="text-[10px] font-normal">Faster +8 General</span></button><button disabled={hasResult} onClick={()=>setFfInputs({...ffInputs, mode:'rank'})} className={ffInputs.mode==='rank' ? 'px-4 py-3 rounded-full bg-white text-black font-bold' : 'px-4 py-3 rounded-full text-white/70'}>RANK - Ranked<br/><span className="text-[10px] font-normal">Balanced Control</span></button></div><p className="font-mono text-[10px] opacity-60 text-center mt-2">{ffInputs.mode==='room' ? 'Room = close-range flicks, higher sensitivity for Custom Room' : 'Rank = stable control for Ranked matches'}</p></div>)}
-YOUR PHONE + SETTINGS — {active==='ff' ? 'FREE FIRE' : 'CODM'}</div>
-            <div className="mt-4 grid md:grid-cols-2 gap-4">
-              <label className="block"><span className="font-mono text-[10px] opacity-60">BRAND</span><select value={currentInputs.phoneBrand} disabled={hasResult} onChange={e=> active==='ff' ? setFfInputs({...ffInputs, phoneBrand:e.target.value}) : setCodInputs({...codInputs, phoneBrand:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50">{brands.map(b=><option key={b}>{b}</option>)}</select></label>
-              <label className="block"><span className="font-mono text-[10px] opacity-60">MODEL</span><input value={currentInputs.phoneModel} disabled={hasResult} onChange={e=> active==='ff' ? setFfInputs({...ffInputs, phoneModel:e.target.value}) : setCodInputs({...codInputs, phoneModel:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50" /></label>
-              <label className="block"><span className="font-mono text-[10px] opacity-60">RAM</span><select value={currentInputs.ram} disabled={hasResult} onChange={e=> active==='ff' ? setFfInputs({...ffInputs, ram:e.target.value}) : setCodInputs({...codInputs, ram:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50">{rams.map(r=><option key={r} value={r}>{r} GB</option>)}</select></label>
-              <label className="block"><span className="font-mono text-[10px] opacity-60">DPI</span><input type="number" value={currentInputs.dpi} disabled={hasResult} onChange={e=> active==='ff' ? setFfInputs({...ffInputs, dpi:e.target.value}) : setCodInputs({...codInputs, dpi:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50" /></label>
-              <label className="block"><span className="font-mono text-[10px] opacity-60">REFRESH</span><select value={currentInputs.refreshRate} disabled={hasResult} onChange={e=> active==='ff' ? setFfInputs({...ffInputs, refreshRate:e.target.value}) : setCodInputs({...codInputs, refreshRate:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50">{refresh.map(r=><option key={r} value={r}>{r} Hz</option>)}</select></label>
-              <label className="block"><span className="font-mono text-[10px] opacity-60">FINGERS</span><div className="mt-1 grid grid-cols-3 gap-2">{(['2','3','4'] as const).map(f=><button key={f} disabled={hasResult} onClick={()=> active==='ff' ? setFfInputs({...ffInputs, fingerLayout:f}) : setCodInputs({...codInputs, fingerLayout:f})} className={`rounded-xl border py-3 font-mono text-[12px] disabled:opacity-50 ${currentInputs.fingerLayout===f ? 'bg-white text-black' : 'bg-black/40 border-white/10'}`}>{f}</button>)}</div></label>
-              <label className="block"><span className="font-mono text-[10px] opacity-60">PLAYSTYLE</span><select value={currentInputs.playStyle} disabled={hasResult} onChange={e=> active==='ff' ? setFfInputs({...ffInputs, playStyle:e.target.value}) : setCodInputs({...codInputs, playStyle:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50"><option>Balanced</option><option>Aggressive</option>{active==='ff' ? <><option>Precision</option><option>Defensive</option></> : <><option>Stealth</option><option>Sniper</option></>}</select></label>
-              <label className="block"><span className="font-mono text-[10px] opacity-60">WEAPON</span><select value={currentInputs.weapon} disabled={hasResult} onChange={e=> active==='ff' ? setFfInputs({...ffInputs, weapon:e.target.value}) : setCodInputs({...codInputs, weapon:e.target.value})} className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 font-mono text-[12px] disabled:opacity-50"><option>AR</option><option>SMG</option><option>Shotgun</option><option>Sniper</option>{active==='ff' ? <option>Balanced</option> : <option>LMG</option>}</select></label>
-              <label className="block md:col-span-2"><span className="font-mono text-[10px] opacity-60">PROBLEM</span><div className="mt-1 grid grid-cols-2 md:grid-cols-5 gap-2">{(active==='ff' ? ['Overshooting','Undershooting','Dragging','Unstable','Headshots'] : ['Overshooting','Undershooting','Recoil','Tracking','Wobble']).map(p=><button key={p} disabled={hasResult} onClick={()=> active==='ff' ? setFfInputs({...ffInputs, problem:p}) : setCodInputs({...codInputs, problem:p})} className={`rounded-xl border px-3 py-3 font-mono text-[11px] disabled:opacity-50 ${currentInputs.problem===p ? 'bg-white text-black' : 'bg-black/40 border-white/10'}`}>{p}</button>)}</div></label>
-              {active==='cod' && <label className="block"><span className="font-mono text-[10px] opacity-60">GYRO</span><div className="mt-1 grid grid-cols-2 gap-2">{(['Off','On'] as const).map(g=><button key={g} disabled={hasResult} onClick={()=>setCodInputs({...codInputs, gyro:g})} className={`rounded-xl border py-3 font-mono text-[12px] disabled:opacity-50 ${codInputs.gyro===g ? 'bg-white text-black' : 'bg-black/40 border-white/10'}`}>{g}</button>)}</div></label>}
-              {active==='cod' && <label className="block"><span className="font-mono text-[10px] opacity-60">ADS MODE</span><div className="mt-1 grid grid-cols-2 gap-2">{(['Tap','Hold'] as const).map(m=><button key={m} disabled={hasResult} onClick={()=>setCodInputs({...codInputs, adsMode:m})} className={`rounded-xl border py-3 font-mono text-[12px] disabled:opacity-50 ${codInputs.adsMode===m ? 'bg-white text-black' : 'bg-black/40 border-white/10'}`}>{m}</button>)}</div></label>}
+        <div className="mt-4 space-y-4 bg-white/5 p-4 rounded-2xl">
+          <label className="block"><span className="text-sm text-gray-300">DPI: {dpi}</span><input type="range" min={300} max={800} value={dpi} onChange={e => setDpi(Number(e.target.value))} className="w-full" /></label>
+          <label className="block"><span className="text-sm text-gray-300">Fingers: {fingers}</span><div className="flex gap-2 mt-1">{[2, 3, 4, 5].map(f => (<button key={f} onClick={() => setFingers(f)} className={`px-4 py-2 rounded-lg ${fingers === f ? 'bg-[#00FFD1] text-black font-bold' : 'bg-white/10'}`}>{f}</button>))}</div></label>
+          <label className="block"><span className="text-sm text-gray-300">Playstyle</span><select value={playstyle} onChange={e => setPlaystyle(e.target.value)} className="w-full mt-1 p-3 rounded-xl bg-black/50 border border-white/20"><option>Aggressive</option><option>Balanced</option><option>Rusher</option><option>Sniper</option><option>Defensive</option></select></label>
+          <label className="block"><span className="text-sm text-gray-300">Weapon</span><select value={weapon} onChange={e => setWeapon(e.target.value)} className="w-full mt-1 p-3 rounded-xl bg-black/50 border border-white/20"><option>AR</option><option>SMG</option><option>Shotgun</option><option>Sniper</option><option>All</option></select></label>
+          <label className="block"><span className="text-sm text-gray-300">Problem</span><select value={problem} onChange={e => setProblem(e.target.value)} className="w-full mt-1 p-3 rounded-xl bg-black/50 border border-white/20"><option>Recoil goes up</option><option>Drag is slow</option><option>Aim is shaky</option><option>Close range weak</option><option>Long range weak</option></select></label>
+          {active === 'ff' && (
+            <div><span className="text-sm text-gray-300">ROOM vs RANK - FREE FIRE</span><div className="flex gap-2 mt-1"><button onClick={() => setMode('rank')} className={`flex-1 py-3 rounded-xl font-bold ${mode === 'rank' ? 'bg-[#00FFD1] text-black' : 'bg-white/10'}`}>RANK - Balanced</button><button onClick={() => setMode('room')} className={`flex-1 py-3 rounded-xl font-bold ${mode === 'room' ? 'bg-[#00FFD1] text-black' : 'bg-white/10'}`}>ROOM - +8 Faster</button></div><p className="text-xs text-gray-400 mt-1">Room players drag harder / faster than rank. Room = +8 General.</p></div>
+          )}
+        </div>
+
+        <button onClick={handleGenerate} disabled={isLockedForActive} className={`w-full mt-4 py-4 rounded-xl font-bold text-lg ${isLockedForActive ? 'bg-gray-600 text-gray-300' : 'bg-[#00FFD1] text-black'}`}>{isLockedForActive ? 'LOCKED - Buy New Profile' : 'GENERATE SENSITIVITY - ₦500 Paid'}</button>
+
+        {currentResult && (
+          <div className="mt-4 bg-white/5 p-4 rounded-2xl">
+            <h2 className="text-xl font-bold">{active === 'ff' ? 'FREE FIRE - Your Sensitivity' : 'CODM - Your Sensitivity'}</h2>
+            <div className="mt-3 space-y-2">{Object.keys(currentResult).filter(k => k !== 'notes').map(k => (<div key={k} className="flex justify-between bg-black/40 p-3 rounded-xl"><span>{k}</span><span className="text-[#00FFD1] font-bold">{currentResult[k]}</span></div>))}</div>
+            <div className="mt-4 bg-black/40 p-3 rounded-xl">
+              <h3 className="font-bold text-cyan-300">WHY THIS SENSITIVITY - VERIFIED ENGINE</h3>
+              <ul className="text-sm text-gray-300 mt-2 space-y-1">{(currentResult.notes || []).map((n: string, i: number) => (<li key={i}>• {n}</li>))}</ul>
             </div>
-            {!hasResult ? <button onClick={gen} className="mt-6 w-full py-4 rounded-full bg-[#FF6B00] text-white font-bold text-[13px] tracking-[0.12em]">GENERATE MY SENSITIVITY → START 60s</button> : <div className="mt-6 rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 font-mono text-[11px] text-amber-200">Inputs locked for this session. You already generated this profile. Download now — {formatTime(secondsLeft)} left.</div>}
-            <div className="mt-3 font-mono text-[10px] opacity-50">{currentLabel}</div>
+            <div className="mt-3 bg-[#00FFD1]/10 border border-[#00FFD1]/40 p-3 rounded-xl">
+              <h3 className="font-bold">HOW TO MASTER THIS SENSITIVITY - READ THIS</h3>
+              <p className="text-sm text-gray-200 mt-2">1. Apply EXACTLY as shown. Do not change one value alone.</p>
+              <p className="text-sm text-gray-200">2. Training Ground 10 mins: 100 kills, drag + flick practice.</p>
+              <p className="text-sm text-gray-200">3. Room test x3: If slow, +5 General only. If shaky, -5 only.</p>
+              <p className="text-sm text-gray-200">4. Rank test x3: Do NOT change mid-match.</p>
+              <p className="text-sm text-gray-200">5. Still off? Generate again with correct DPI / Problem. Do not guess.</p>
+            </div>
+            <div className="flex gap-2 mt-4"><button onClick={handleDownloadPng} className="flex-1 bg-[#00FFD1] text-black font-bold py-3 rounded-xl">DOWNLOAD PNG</button><button onClick={handleDownloadTxt} className="flex-1 bg-white/10 font-bold py-3 rounded-xl">DOWNLOAD TXT</button></div>
+            <div className="flex gap-2 mt-2"><button onClick={handleCopy} className="flex-1 bg-white/10 py-3 rounded-xl">COPY</button><button onClick={handleSave} className="flex-1 bg-white/10 py-3 rounded-xl">SAVE TO VAULT</button></div>
+            {savedMsg && <p className="text-center text-cyan-300 text-sm mt-2">{savedMsg}</p>}
+            <p className="text-center text-xs text-gray-400 mt-3">One payment = one profile. This profile is saved in Vault - reload free. New phone / new setting = new payment.</p>
           </div>
-
-          {/* RESULT CARD — DOWNLOADABLE / SCREENSHOT */}
-          <div className="rounded-[28px] bg-white/[0.03] border border-white/10 p-6 min-h-[420px]">
-            <div className="flex justify-between items-center"><div className="font-mono text-[11px]">OUTPUT • {active==='ff' ? 'FREE FIRE' : 'CODM'} • {currentFp}</div><div className="font-mono text-[10px] opacity-50">{hasResult ? `⏰ ${formatTime(secondsLeft)}` : 'No result yet'}</div></div>
-            {!hasResult ? (
-              <div className="mt-16 text-center"><div className="w-16 h-16 mx-auto rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[28px]">🎯</div><div className="mt-4 font-bold text-[16px]">No sensitivity yet</div><div className="mt-2 font-mono text-[11px] opacity-60 max-w-[280px] mx-auto leading-relaxed">Set your phone + settings on the left, tap GENERATE. You will have 60 seconds to download or screenshot.</div></div>
-            ) : (
-              <div>
-                <div className="mt-6 space-y-2">
-                  {Object.entries(currentResult).map(([k,v])=>(
-                    <div key={k} className="flex justify-between items-center rounded-2xl bg-white/[0.04] border border-white/5 px-4 py-3.5"><span className="font-mono text-[12px] opacity-70">{k}</span><span className="font-black text-[20px] text-[#00FFD1]">{String(v)}</span></div>
-                  ))}
-                </div>
-                <div className="mt-4 space-y-2">
-                  {currentExp.map((e,i)=><div key={i} className="font-mono text-[11px] opacity-60 border-l-2 border-[#00FFD1]/30 pl-3">• {e}</div>)}
-                </div>
-                {/* DOWNLOAD BUTTONS */}
-                <div className="mt-6 space-y-2">
-                  <button onClick={downloadPNG} className="w-full py-4 rounded-full bg-[#00FFD1] text-black font-bold text-[13px] tracking-[0.08em]">⬇   <div className="mt-4 p-4 rounded-xl bg-[#00FFD1]/10 border border-[#00FFD1]/30 text-left"><div className="font-mono text-[12px] font-bold mb-2">HOW TO MASTER THIS SENSITIVITY - READ THIS</div><p className="text-[12px] leading-relaxed">1. In Free Fire go to Settings - Sensitivity - Custom and type these numbers exactly. Do NOT change your DPI after.<br/>2. Go to Training Ground for 10 mins: 5 mins drag to head, 5 mins tracking moving target.<br/>3. If it feels too fast, lower General by 5 only, not 30. If too slow, raise General by 5 only. Test again.<br/>4. Room numbers are for Custom Room only. Rank numbers are for Ranked only. Do not mix them.<br/>5. Give it 3 days. Your hand needs time to learn. Changing every match will make it feel bad.</p></div>
-DOWNLOAD PNG CARD (Screenshot-Ready) {downloaded ? '✓' : ''}</button>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button onClick={downloadTXT} className="py-3 rounded-full bg-white text-black font-bold text-[11px]">⬇ DOWNLOAD TXT</button>
-                    <button onClick={copyValues} className="py-3 rounded-full bg-white/10 border border-white/10 font-bold text-[11px]">{copied ? '✓ COPIED!' : '📋 COPY VALUES'}</button>
-                  </div>
-                  <div className="rounded-xl bg-white/[0.04] border border-white/10 p-3 font-mono text-[10px] opacity-70 leading-relaxed">📸 <b>Screenshot tip:</b> Hold Power + Volume Down to screenshot this card. Or tap DOWNLOAD PNG — it saves a clean 1080×1350 image to your gallery with your email watermark. Do it now — {formatTime(secondsLeft)} left before lock.</div>
-                  <div className="font-mono text-[10px] opacity-50 text-center">Watermarked to: {paidEmail} • Profile: {currentFp} • 1 Payment = 1 Profile</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
+        )}
+      </div>
     </div>
   )
 }
+export { LabPage }
+
